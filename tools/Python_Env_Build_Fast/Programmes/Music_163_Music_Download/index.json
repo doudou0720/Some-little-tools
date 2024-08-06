@@ -1,0 +1,12 @@
+{
+    "correct_version" : 0,
+    "name" : "Music_163_Music_Download",
+    "author" : "doudou0720",
+    "check_update_URL" : "" ,
+    "FilePath":[
+
+    ],
+    "Install_Run":"",
+    "Del_Install_File_After_Install":true,
+    "Entrance":"./main.py"
+}

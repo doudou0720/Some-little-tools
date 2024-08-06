@@ -136,9 +136,9 @@ def install_programmes(path) -> int:
     if name == "":
         name = None
     if name!= None:
-        choice = input("Step 1 Programme Name / 项目名称\n留空以使用: "+name+"\n>> ")
+        choice = input("Step 1 Programme Name / 项目名称\n留空以使用: "+name+"\n不得含有空格等特殊字符\n>> ")
     else:
-        choice = input("Step 1 Programme Name / 项目名称\n你必须给它起名\n项目名称: ")
+        choice = input("Step 1 Programme Name / 项目名称\n你必须给它起名\n不得含有空格等特殊字符\n>项目名称: ")
     if choice == "":
         if name == None:
             name = "Unnamed_"+uuid.uuid4()
@@ -440,12 +440,13 @@ else:
                         continue
                     elif choice[1] == 1:
                         clean_stdin()
-                        os.system(f'cmd /c "{Run_Dir}/py38/python.exe" "{os.path.abspath(entrance)}"')
+                        os.system(f'{os.path.abspath(Run_Dir+'/py38/python.exe')} {os.path.abspath(entrance)}')
+                        input("运行完毕\n按回车返回\n>>")
                     elif choice[1] == 2:
                         pass
                     elif choice[1] == 3:
                         clean_stdin()
-                        time.sleep(0.5)
+                        time.sleep(1)
                         if CLI.ynBox("您将删除该项目所有文件(不含依赖库)\n执行时，该程序将会关闭",""):
                             print("写入配置中...")
                             with open("./settings.json","r") as f:
@@ -454,7 +455,8 @@ else:
                                 if os.path.split(i[1])[0] == Base_dir:
                                     tmp["programmes"].remove(i)
                             with open("./settings.json","w") as f:
-                                f.write(json.dumps(tmp))                            
+                                f.write(json.dumps(tmp))    
+                            flush_data()                        
                             shutil.rmtree(Base_dir)
         elif choice[1] == 2:
             pass

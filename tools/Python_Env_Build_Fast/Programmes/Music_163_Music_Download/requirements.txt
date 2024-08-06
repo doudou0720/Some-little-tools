@@ -1,0 +1,5 @@
+alive_progress==3.1.5
+beautifulsoup4==4.12.3
+eyed3==0.9.7
+Requests==2.32.3
+selenium==4.23.1
