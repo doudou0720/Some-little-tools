@@ -1,5 +1,6 @@
 import datetime
 import json
+import urllib.request
 import shutil
 import subprocess
 import tempfile
@@ -168,6 +169,11 @@ def install_programmes(path) -> int:
     tmp["programmes"].append([name,os.path.abspath(os.path.join(f'{Run_Dir}/Programmes/{name}',data["Entrance"])),data["check_update_URL"]])
     with open("./settings.json","w") as f:
         f.write(json.dumps(tmp))
+
+def read_text_from_url(url):
+    response = urllib.request.urlopen(url)
+    content = response.read().decode('utf-8')
+    return content
 if not os.path.exists("./py38/installed"):
     print("Python38快速搭建 ver.2")
 
@@ -417,16 +423,16 @@ else:
                     break
                 elif choice[1] == "add":
                     
-                    choice = CLI.SclectBox("当前位置 项目管理 > 添加新程序\n选择添加方式\n---------","---------\n说明\n本地:从zip安装\n网络(URL):通过索引文件下载\n网络(Git):需安装Git 克隆储存库",(("<<返回上一层",0),("本地",1),("网络(URL)",2),("网络(Git)",3))).start()
+                    choice = CLI.SclectBox("当前位置 项目管理 > 添加新程序\n选择添加方式\n---------","---------\n说明\n本地:从zip安装\n网络(URL):通过zip文件下载\n网络(Git):需安装Git 克隆储存库",(("<<返回上一层",0),("本地",1),("网络(URL)",2),("网络(Git)",3))).start()
                     if choice[1] == 0:
                         continue
                     elif choice[1] == 1:
 
                         path = CLI.FileOpenBox(os.getcwd()).start()
                         if path.endswith(".zip"):
-                            with tempfile.TemporaryDirectory(prefix="PEBF_",suffix="_"+datetime.datetime.now().strftime("%Y%m%d%H%M%S")) as dir:
-                                unzip_file(path,dir)
-                                install_programmes(os.path.join(dir,"./index.json"))
+                            with tempfile.TemporaryDirectory(prefix="PEBF_",suffix="_"+datetime.datetime.now().strftime("%Y%m%d%H%M%S")) as dir_tmp:
+                                unzip_file(path,dir_tmp)
+                                install_programmes(os.path.join(dir_tmp,"./index.json"))
                             flush_data()
                     elif choice[1] == 2:
                         pass
@@ -435,6 +441,7 @@ else:
                 else:
                     entrance = choice[1]
                     Base_dir = os.path.split(choice[1])[0]
+                    URL = choice[2]
                     choice = CLI.SclectBox("当前位置 项目管理 > "+choice[0],f"项目文件夹:{Base_dir}\n更新链接:{choice[2]}",(("<<返回上一层",0),("运行项目",1),("检查更新\n---------",2),(Back.RED+Style.BRIGHT+"删除项目"+Style.RESET_ALL,3))).start()
                     if choice[1] == 0:
                         continue
@@ -443,13 +450,25 @@ else:
                         os.system(f'{os.path.abspath(Run_Dir+'/py38/python.exe')} {os.path.abspath(entrance)}')
                         input("运行完毕\n按回车返回\n>>")
                     elif choice[1] == 2:
-                        pass
+                        try:
+                            text_content = read_text_from_url(URL).split("\n")
+                            with open(os.path.abspath(os.path.join(Base_dir,"./index.json")),encoding="utf-8") as f:
+                                data = json.dumps(f.read())
+                                ver = data["correct_version"]
+                                pro_uuid = data["update_uuid"]
+                            for i in text_content:
+                                if i[:35] == pro_uuid :
+                                    if int(i.split(" ")[1]) > ver:
+                                        print("虽然找到了更新，但此版本尚不能安装更新，请等待下个版本")
+                                        input(">>")
+                        except:
+                            pass
                     elif choice[1] == 3:
                         clean_stdin()
                         time.sleep(1)
                         if CLI.ynBox("您将删除该项目所有文件(不含依赖库)\n执行时，该程序将会关闭",""):
                             print("写入配置中...")
-                            with open("./settings.json","r") as f:
+                            with open("./settings.json","r",encoding="utf-8") as f:
                                 tmp = json.loads(f.read().replace("\n",""))
                             for i in tmp["programmes"]:
                                 if os.path.split(i[1])[0] == Base_dir:
@@ -459,4 +478,6 @@ else:
                             flush_data()                        
                             shutil.rmtree(Base_dir)
         elif choice[1] == 2:
-            pass
+            clean_stdin()
+            print("该版本不支持自动更新,请到https://github.com/doudou0720/Some-little-tools/releases(国际)或https://gitee.com/doudou0720/Some-little-tools/releases(国内)下载以‘[PEBF]’开头的最新版本!")
+            input(">>")
