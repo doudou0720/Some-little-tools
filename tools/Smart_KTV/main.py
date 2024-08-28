@@ -1,30 +1,12 @@
-# -*- coding:utf-8 -*-
-import easygui
-import ffmpeg
-import numpy as np
-import wave
-# import spleeter
-# import spleeter.separator
+import flask
 
-def get_wave(audio_path):
-    # 打开WAV文档
-    f = wave.open(audio_path, "rb")
-    # 读取格式信息
-    # (nchannels, sampwidth, framerate, nframes, comptype, compname)
-    params = f.getparams()
-    nchannels, sampwidth, framerate, nframes = params[:4]
-    # 读取波形数据
-    str_data = f.readframes(nframes)
-    f.close()
-    #将波形数据转换为数组
-    wave_data = np.fromstring(str_data, dtype=np.short)
-    wave_data.shape = -1, 2
-    wave_data = wave_data.T
-    return wave_data
-if __name__ == '__main__':
-    audio_path = '1.wav'
+app = flask.Flask(__name__, template_folder="./templates", static_folder="./static")
+
+@app.route("/play")
+def play():
+    name = flask.request.args.get("name")
+    if name == None:
+        return flask.Response("Cannot Get key 'name'", 400)
+    return flask.render_template("main.html",name=name)
     
-    ffmpeg.input(easygui.fileopenbox()).output(audio_path).run() 
-    
-    # sep = spleeter.separator.Separator('spleeter:2stems')
-    # sep.separate_to_file(audio_path,"./")
+app.run(debug=True,port=8000,host="0.0.0.0")
