@@ -1,57 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>歌词同步</title>
     <style>
         body {
-            background:url("{{ url_for('static',filename='images/'+name+'.jpg')}}") center no-repeat ;
-            background-size:60% 100%;
+            background:url("{{ url_for('static',filename='images/'+name+'.jpg')}}") center no-repeat;
+            background-size: 60% 100%;
         }
+
         * {
-            margin:0 auto;
-            padding:0;
+            margin: 0 auto;
+            padding: 0;
         }
+
         .play {
             color: #01e5ff;
             font-size: 24px;
         }
- 
+
         .overPlay {
             font-size: inherit;
             color: #fff;
         }
- 
+
         #div_lrc {
             position: absolute;
             padding-top: 0px;
             left: 28%;
             top: 300px;
-            width:50%;
+            width: 50%;
             transition: top .5s;
             margin: 0 auto;
-            
+
         }
- 
+
         .div_DisLrc {
             overflow: hidden;
-            color:#b1abab;
+            color: #b1abab;
             width: 70%;
-            height: 600px;  
+            height: 600px;
             position: relative;
             margin: 0 auto;
-            
+
         }
- 
+
         #audio {
             width: 100%;
         }
- 
+
         .div_audio {
             width: 50%;
             margin: 0 auto;
         }
- 
+
         .div_but {
             position: absolute;
             font-size: 26px;
@@ -59,15 +62,15 @@
             top: 40%;
             right: 0%;
         }
- 
-            .div_but p {
-                cursor: pointer;
-            }
+
+        .div_but p {
+            cursor: pointer;
+        }
     </style>
 </head>
- 
- 
- 
+
+
+
 <body>
     <div id="div_1" style="display: none;">
     </div>
@@ -90,14 +93,15 @@
             <source src="{{ url_for('static',filename='audios/'+name+'.mp3') }}" type="audio/mpeg">
         </audio>
     </div>
- 
- 
- 
+
+
+
     <script src="{{ url_for('static',filename='js/jquery-3.6.1.js') }}"></script>
     <script>
         var audio = document.getElementById("audio");
         var play = $("#lrc_row1");
         var ms = 0;
+        var is_controled = false;
         //将歌词添加到div中
         $(document).ready(function () {
             //加载歌词
@@ -115,7 +119,7 @@
                 }
             }, 200)
         })
- 
+
         function lrcDisplay() {
             //获取播放进度(转换的格式为: 00:00)
             var minute = parseInt(audio.currentTime / 60);//分钟
@@ -127,13 +131,32 @@
             //console.log(minute,second)
             var regex = new RegExp('\\[' + (minute + ":" + second) + '.+\\].+\n');
             var text = regex.exec($("#div_1").text());
+            // debugger;
+            // console.log(is_controled,((ms > 100 * minute + second)||((100 * minute + second)-ms > 2))&& !is_controled);
+            if (((ms > 100 * Number(minute) + Number(second)) || ((100 * Number(minute) + Number(second)) - ms > 2)) && !is_controled) {
+                play = $("#lrc_row1");
+                $('#div_lrc > *').each(function (index) {
+                    // 对每个 div 元素执行操作
+                    // console.log('第 ' + index + ' 个 div');
+                    $(this).removeClass()
+                });
+                is_controled = true;
+                var cnt = 1;
+                while (cnt == 1) {
+                    cnt = lrcDisplay()
+                    // console.log(cnt);
+                    // alert(cnt);
+                    debugger;
+                };
+                var cnt = 0;
+                is_controled = false;
+                $("#div_lrc").css("top", 300 + "px");
+            } ms = 100 * Number(minute) + Number(second)
             if (text != null) {
-                //console.log(ms)
+                // console.log(text)
                 var str1 = new String($(play).next().text());
                 var str2 = new String(text[0].substring(11));
-                if (ms > 100 * minute + second){
-                    play = $("#lrc_row1");
-                }
+
                 if (str1.trim() == str2.trim()) {
                     //歌词颜色变色
                     $(play).attr("class", "overPlay");
@@ -142,9 +165,30 @@
                     //歌词滚动(自动)
                     var top = parseInt($("#div_lrc").css("top"));
                     $("#div_lrc").css("top", -1 * ((-1 * top) + 22) + "px");
-                    ms = 100 * minute + second
+
+                    return 1;
                 }
             }
+            if (is_controled) { debugger; }
+            var num_l = $(play).text().match(/[1-9][0-9]*/g);
+            if (num_l == null) {
+                var num_l = [0, 0];
+            }
+            if (is_controled) {//num_l 目前播放  ms当前时间
+                alert(num_l,minute,second)
+                if (Number(num_l[0]) <= Number(minute) && ((Number(num_l[0]) < Number(minute)) || (Number(num_l[0]) == Number(minute) && Number(num_l[1]) <= Number(second)))) {
+                    //歌词颜色变色
+                    $(play).attr("class", "overPlay");
+                    play = $(play).next();
+                    $(play).attr("class", "play");
+                    //歌词滚动(自动)
+                    var top = parseInt($("#div_lrc").css("top"));
+                    $("#div_lrc").css("top", -1 * ((-1 * top) + 22) + "px");
+
+                    return 1;
+                }
+            }
+            return 0;
         }
         setInterval(lrcDisplay, 500);
         //歌词滚动(手动)
@@ -158,7 +202,7 @@
             if (top <= 0)
                 $("#div_lrc").css("top", -1 * ((-1 * top) - 100) + "px");
         }
- 
+
         //调整歌词位置的函数
         function btn_top() {
             var top = parseInt($("#div_lrc").css("top"));
@@ -178,4 +222,5 @@
         */
     </script>
 </body>
+
 </html>
