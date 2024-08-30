@@ -197,7 +197,9 @@
                 };
                 var cnt = 0;
                 //歌词滚动(自动)
-                $("#div_lrc").css("top", 300 - 22*d_c + "px");
+                
+                var now_top = $("#div_lrc").offset().top-(($(play).offset().top)-(($(document).height() / 2)-( $(play).outerHeight(true)/2)))
+                $("#div_lrc").css("top", now_top + "px");
                 is_controled = false;
                 
             } ms = 100 * Number(minute) + Number(second)
@@ -212,8 +214,8 @@
                     play = $(play).next();
                     $(play).attr("class", "play");
                     //歌词滚动(自动)
-                    var top = parseInt($("#div_lrc").css("top"));
-                    $("#div_lrc").css("top", -1 * ((-1 * top) + 22) + "px");
+                    var now_top = $("#div_lrc").offset().top-(($(play).offset().top)-(($(document).height() / 2)-( $(play).outerHeight(true)/2)))
+                    $("#div_lrc").css("top", now_top + "px");
 
                     return 1;
                 }
@@ -225,10 +227,10 @@
                 var sec = 0;
             }else{
                 // debugger;
-                var min = Number($(play)[0].dataset.minute);
-                var sec = Number($(play)[0].dataset.second);
+                var min = Number(($(play).next())[0].dataset.minute);
+                var sec = Number(($(play).next())[0].dataset.second);
             }
-            if (is_controled) {//num_l 目前播放  ms当前时间
+            if (is_controled) {//  ms当前时间
                 // alert(num_l,minute,second)
                 if (min <= Number(minute) && (min < Number(minute)) || (min == Number(minute) && sec <= Number(second))) {
                     // debugger;
@@ -279,7 +281,8 @@
             var card_height = $("#ShowInfo").outerHeight(true);
             var card_top = ($(document).height() / 2)-(card_height/2);
             $("#ShowInfo").css("top",card_top)
-            $("#div_lrc").css("top", ($(document).height() / 4) + "px");
+            // $("#div_lrc").css("top", ($(document).height() / 4) + "px");
+            ms = 0;
         }
         const debounce = (fn, delay) => {
         let timer;

@@ -1,0 +1,212 @@
+{
+    "songs": [
+        {
+            "name": "如果爱忘了 (live)",
+            "id": 2124385868,
+            "position": 0,
+            "alias": [],
+            "status": 0,
+            "fee": 8,
+            "copyrightId": 7001,
+            "disc": "01",
+            "no": 2,
+            "artists": [
+                {
+                    "name": "汪苏泷",
+                    "id": 5538,
+                    "picId": 0,
+                    "img1v1Id": 0,
+                    "briefDesc": "",
+                    "picUrl": "http://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/5639395138885805.jpg",
+                    "img1v1Url": "http://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/5639395138885805.jpg",
+                    "albumSize": 0,
+                    "alias": [],
+                    "trans": "",
+                    "musicSize": 0,
+                    "topicPerson": 0
+                },
+                {
+                    "name": "单依纯",
+                    "id": 29802127,
+                    "picId": 0,
+                    "img1v1Id": 0,
+                    "briefDesc": "",
+                    "picUrl": "http://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/5639395138885805.jpg",
+                    "img1v1Url": "http://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/5639395138885805.jpg",
+                    "albumSize": 0,
+                    "alias": [],
+                    "trans": "",
+                    "musicSize": 0,
+                    "topicPerson": 0
+                }
+            ],
+            "album": {
+                "name": "声生不息·家年华 第12期",
+                "id": 185225783,
+                "type": "专辑",
+                "size": 13,
+                "picId": 109951169721390560,
+                "blurPicUrl": "http://p2.music.126.net/3nL__2mV7k65XMoUw6Gu-g==/109951169721390560.jpg",
+                "companyId": 0,
+                "pic": 109951169721390560,
+                "picUrl": "http://p2.music.126.net/3nL__2mV7k65XMoUw6Gu-g==/109951169721390560.jpg",
+                "publishTime": 1708099200000,
+                "description": "",
+                "tags": "",
+                "company": "索尼音乐 x 芒果TV",
+                "briefDesc": "",
+                "artist": {
+                    "name": "",
+                    "id": 0,
+                    "picId": 0,
+                    "img1v1Id": 0,
+                    "briefDesc": "",
+                    "picUrl": "http://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/5639395138885805.jpg",
+                    "img1v1Url": "http://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/5639395138885805.jpg",
+                    "albumSize": 0,
+                    "alias": [],
+                    "trans": "",
+                    "musicSize": 0,
+                    "topicPerson": 0
+                },
+                "songs": [],
+                "alias": [],
+                "status": 1,
+                "copyrightId": 7001,
+                "commentThreadId": "R_AL_3_185225783",
+                "artists": [
+                    {
+                        "name": "声生不息·家年华",
+                        "id": 52391958,
+                        "picId": 0,
+                        "img1v1Id": 0,
+                        "briefDesc": "",
+                        "picUrl": "http://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/5639395138885805.jpg",
+                        "img1v1Url": "http://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/5639395138885805.jpg",
+                        "albumSize": 0,
+                        "alias": [],
+                        "trans": "",
+                        "musicSize": 0,
+                        "topicPerson": 0
+                    }
+                ],
+                "subType": "录音室版",
+                "transName": None,
+                "onSale": False,
+                "mark": 0,
+                "gapless": 0,
+                "dolbyMark": 0,
+                "picId_str": "109951169721390560"
+            },
+            "starred": False,
+            "popularity": 100.0,
+            "score": 100,
+            "starredNum": 0,
+            "duration": 245394,
+            "playedNum": 0,
+            "dayPlays": 0,
+            "hearTime": 0,
+            "sqMusic": {
+                "name": None,
+                "id": 8868768328,
+                "size": 29165709,
+                "extension": "flac",
+                "sr": 48000,
+                "dfsId": 0,
+                "bitrate": 950820,
+                "playTime": 245394,
+                "volumeDelta": -46586.0
+            },
+            "hrMusic": {
+                "name": None,
+                "id": 8868768327,
+                "size": 52766683,
+                "extension": "flac",
+                "sr": 48000,
+                "dfsId": 0,
+                "bitrate": 1720227,
+                "playTime": 245394,
+                "volumeDelta": -45968.0
+            },
+            "ringtone": "",
+            "crbt": None,
+            "audition": None,
+            "copyFrom": "",
+            "commentThreadId": "R_SO_4_2124385868",
+            "rtUrl": None,
+            "ftype": 0,
+            "rtUrls": [],
+            "copyright": 0,
+            "transName": None,
+            "sign": None,
+            "mark": 0,
+            "originCoverType": 2,
+            "originSongSimpleData": {
+                "songId": 285321,
+                "name": "如果爱忘了",
+                "artists": [
+                    {
+                        "id": 9203,
+                        "name": "戚薇"
+                    }
+                ],
+                "albumMeta": {
+                    "id": 28330,
+                    "name": "如果爱忘了"
+                }
+            },
+            "single": 0,
+            "noCopyrightRcmd": None,
+            "hMusic": {
+                "name": None,
+                "id": 8868768330,
+                "size": 9817965,
+                "extension": "mp3",
+                "sr": 48000,
+                "dfsId": 0,
+                "bitrate": 320000,
+                "playTime": 245394,
+                "volumeDelta": -45980.0
+            },
+            "mMusic": {
+                "name": None,
+                "id": 8868768333,
+                "size": 5890797,
+                "extension": "mp3",
+                "sr": 48000,
+                "dfsId": 0,
+                "bitrate": 192000,
+                "playTime": 245394,
+                "volumeDelta": -43400.0
+            },
+            "lMusic": {
+                "name": None,
+                "id": 8868768325,
+                "size": 3927213,
+                "extension": "mp3",
+                "sr": 48000,
+                "dfsId": 0,
+                "bitrate": 128000,
+                "playTime": 245394,
+                "volumeDelta": -41712.0
+            },
+            "bMusic": {
+                "name": None,
+                "id": 8868768325,
+                "size": 3927213,
+                "extension": "mp3",
+                "sr": 48000,
+                "dfsId": 0,
+                "bitrate": 128000,
+                "playTime": 245394,
+                "volumeDelta": -41712.0
+            },
+            "mvid": 0,
+            "mp3Url": None,
+            "rtype": 0,
+            "rurl": None
+        }
+    ],
+    "equalizers": {},
+    "code": 200
+}
