@@ -91,14 +91,14 @@
                     }
                 ],
                 "subType": "录音室版",
-                "transName": None,
-                "onSale": False,
+                "transName": null,
+                "onSale": false,
                 "mark": 0,
                 "gapless": 0,
                 "dolbyMark": 0,
                 "picId_str": "109951169721390560"
             },
-            "starred": False,
+            "starred": false,
             "popularity": 100.0,
             "score": 100,
             "starredNum": 0,
@@ -107,7 +107,7 @@
             "dayPlays": 0,
             "hearTime": 0,
             "sqMusic": {
-                "name": None,
+                "name": null,
                 "id": 8868768328,
                 "size": 29165709,
                 "extension": "flac",
@@ -118,7 +118,7 @@
                 "volumeDelta": -46586.0
             },
             "hrMusic": {
-                "name": None,
+                "name": null,
                 "id": 8868768327,
                 "size": 52766683,
                 "extension": "flac",
@@ -129,16 +129,16 @@
                 "volumeDelta": -45968.0
             },
             "ringtone": "",
-            "crbt": None,
-            "audition": None,
+            "crbt": null,
+            "audition": null,
             "copyFrom": "",
             "commentThreadId": "R_SO_4_2124385868",
-            "rtUrl": None,
+            "rtUrl": null,
             "ftype": 0,
             "rtUrls": [],
             "copyright": 0,
-            "transName": None,
-            "sign": None,
+            "transName": null,
+            "sign": null,
             "mark": 0,
             "originCoverType": 2,
             "originSongSimpleData": {
@@ -156,9 +156,9 @@
                 }
             },
             "single": 0,
-            "noCopyrightRcmd": None,
+            "noCopyrightRcmd": null,
             "hMusic": {
-                "name": None,
+                "name": null,
                 "id": 8868768330,
                 "size": 9817965,
                 "extension": "mp3",
@@ -169,7 +169,7 @@
                 "volumeDelta": -45980.0
             },
             "mMusic": {
-                "name": None,
+                "name": null,
                 "id": 8868768333,
                 "size": 5890797,
                 "extension": "mp3",
@@ -180,7 +180,7 @@
                 "volumeDelta": -43400.0
             },
             "lMusic": {
-                "name": None,
+                "name": null,
                 "id": 8868768325,
                 "size": 3927213,
                 "extension": "mp3",
@@ -191,7 +191,7 @@
                 "volumeDelta": -41712.0
             },
             "bMusic": {
-                "name": None,
+                "name": null,
                 "id": 8868768325,
                 "size": 3927213,
                 "extension": "mp3",
@@ -202,9 +202,9 @@
                 "volumeDelta": -41712.0
             },
             "mvid": 0,
-            "mp3Url": None,
+            "mp3Url": null,
             "rtype": 0,
-            "rurl": None
+            "rurl": null
         }
     ],
     "equalizers": {},
