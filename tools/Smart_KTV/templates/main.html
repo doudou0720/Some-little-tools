@@ -174,19 +174,72 @@
         var play = $("#lrc_row1");
         var ms = 0;
         var is_controled = false;
+        var syncTimeout = null;
 
         // 音频同步控制
         audio1.addEventListener('play', function () {
-            audio2.play();
+            syncAudioPlay(audio2);
         });
 
         audio1.addEventListener('pause', function () {
-            audio2.pause();
+            syncAudioPause(audio2);
         });
 
         audio1.addEventListener('seeking', function () {
-            audio2.currentTime = audio1.currentTime;
+            syncAudioSeek(audio2, audio1.currentTime);
         });
+        
+        audio1.addEventListener('seeked', function () {
+            syncAudioSeek(audio2, audio1.currentTime);
+            if (!audio1.paused) {
+                syncAudioPlay(audio1);
+                syncAudioPlay(audio2);
+            }
+        });
+
+        // 添加对audio2事件的监听，实现双向同步控制
+        audio2.addEventListener('play', function () {
+            syncAudioPlay(audio1);
+        });
+
+        audio2.addEventListener('pause', function () {
+            syncAudioPause(audio1);
+        });
+
+        audio2.addEventListener('seeking', function () {
+            syncAudioSeek(audio1, audio2.currentTime);
+        });
+        
+        audio2.addEventListener('seeked', function () {
+            syncAudioSeek(audio1, audio2.currentTime);
+            if (!audio2.paused) {
+                syncAudioPlay(audio1);
+                syncAudioPlay(audio2);
+            }
+        });
+
+        // 同步播放函数
+        function syncAudioPlay(audio) {
+            if (audio.paused) {
+                audio.play().catch(function(e) {
+                    console.log(audio.id + " play error:", e);
+                });
+            }
+        }
+
+        // 同步暂停函数
+        function syncAudioPause(audio) {
+            if (!audio.paused) {
+                audio.pause();
+            }
+        }
+
+        // 同步跳转函数
+        function syncAudioSeek(audio, time) {
+            if (Math.abs(audio.currentTime - time) > 0.1) {
+                audio.currentTime = time;
+            }
+        }
 
         // 音量控制
         document.getElementById('audio1-volume').addEventListener('input', function (e) {
@@ -200,143 +253,125 @@
             audio2.volume = volume;
             document.getElementById('audio2-volume-value').textContent = Math.round(volume * 100) + '%';
         });
+        
+        // 使用Promise改进歌词加载
         function LoadLrc() {
-            //加载歌词
-            $('#div_1').load("{{ url_for('static',filename='audios/'+name_lrc) }}");
-            //获取所有歌词
-            setTimeout(function () {
-                var lrcArr = $("#div_1").text().split('\n');
-                // debugger;
-                for (var i = 0; i < lrcArr.length; i++) {
-                    var p = document.createElement("p");
-                    //空白歌词不进行加载
-                    if (lrcArr[i].substring(11) != "") {
-                        // debugger;
-                        var num_l = (lrcArr[i]).match(/\d+/g);
-                        p.innerText = lrcArr[i].substring(11);
-                        p.dataset.minute = Number(num_l[0]);
-                        p.dataset.second = Number(num_l[1]);
-                        $("#div_lrc").append(p);
+            return new Promise(function(resolve, reject) {
+                // 加载歌词
+                $('#div_1').load("{{ url_for('static',filename='audios/'+name_lrc) }}", function(response, status, xhr) {
+                    if (status == "error") {
+                        reject("加载歌词失败: " + xhr.status + " " + xhr.statusText);
+                        return;
                     }
-                }
-            }, 200)
+                    
+                    // 获取所有歌词
+                    setTimeout(function () {
+                        try {
+                            var lrcArr = $("#div_1").text().split('\n');
+                            // 清空之前的歌词
+                            $("#div_lrc").empty();
+                            
+                            // 添加初始行
+                            var firstP = document.createElement("p");
+                            firstP.id = "lrc_row1";
+                            firstP.dataset.minute = "0";
+                            firstP.dataset.second = "0";
+                            firstP.innerText = "";
+                            $("#div_lrc").append(firstP);
+                            
+                            for (var i = 0; i < lrcArr.length; i++) {
+                                // 空白歌词不进行加载
+                                if (lrcArr[i].substring(11) != "") {
+                                    var p = document.createElement("p");
+                                    var timeMatch = lrcArr[i].match(/\[(\d+):(\d+\.\d+)]/);
+                                    if (timeMatch) {
+                                        p.innerText = lrcArr[i].substring(timeMatch[0].length);
+                                        p.dataset.minute = parseInt(timeMatch[1]);
+                                        p.dataset.second = parseFloat(timeMatch[2]);
+                                        $("#div_lrc").append(p);
+                                    }
+                                }
+                            }
+                            play = $("#lrc_row1");
+                            resolve();
+                        } catch (e) {
+                            reject("解析歌词出错: " + e.message);
+                        }
+                    }, 300); // 稍微增加延迟确保内容加载完成
+                });
+            });
         }
         
+        $(document).ready(function () {
+            LoadLrc().then(function() {
+                console.log("歌词加载完成");
+            }).catch(function(error) {
+                console.error("歌词加载失败:", error);
+            });
+        });
+
         function lrcDisplay() {
             // 使用第一个音频作为时间基准进行歌词同步
-            //获取播放进度(转换的格式为: 00:00)
-            var minute = parseInt(audio1.currentTime / 60);//分钟
-            minute = minute == 0 ? "00" : (minute + "").length < 2 ? "0" + minute : minute;
-            //获取秒数
-            var second = (parseInt(audio1.currentTime)) % 60;
-            second = second == 0 ? "00" : (second + "").length < 2 ? "0" + second : second;
-            //正则表达匹配歌词
-            //console.log(minute,second)
-            var regex = new RegExp('\\[' + (minute + ":" + second) + '.+\\].+\n');
-            var text = regex.exec($("#div_1").text());
-            // debugger;
-            // console.log(is_controled,((ms > 100 * minute + second)||((100 * minute + second)-ms > 2))&& !is_controled);
-            if (((ms > 100 * Number(minute) + Number(second)) || ((100 * Number(minute) + Number(second)) - ms > 2)) && !is_controled) {
-                play = $("#lrc_row1");
-                $('#div_lrc > *').each(function (index) {
-                    // 对每个 div 元素执行操作
-                    // console.log('第 ' + index + ' 个 div');
-                    $(this).removeClass()
-                });
-                is_controled = true;
-                var cnt = 1;
-                // debugger;
-                var d_c = 0;
-                while (cnt == 1) {
-                    cnt = lrcDisplay()
-                    // console.log(cnt);
-                    // alert(cnt);
-                    // debugger;
-                    d_c++;
-                };
-                var cnt = 0;
-                //歌词滚动(自动)
-
-                var now_top = $("#div_lrc").offset().top - (($(play).offset().top) - (($(document).height() / 2) - ($(play).outerHeight(true) / 2)))
-                $("#div_lrc").css("top", now_top + "px");
-                is_controled = false;
-
-            } ms = 100 * Number(minute) + Number(second)
-            if (text != null) {
-                // console.log(text)
-                var str1 = new String($(play).next().text());
-                var str2 = new String(text[0].substring(11));
-
-                if (str1.trim() == str2.trim()) {
-                    //歌词颜色变色
-                    $(play).attr("class", "overPlay");
-                    play = $(play).next();
-                    $(play).attr("class", "play");
-                    //歌词滚动(自动)
-                    var now_top = $("#div_lrc").offset().top - (($(play).offset().top) - (($(document).height() / 2) - ($(play).outerHeight(true) / 2)))
-                    $("#div_lrc").css("top", now_top + "px");
-
-                    return 1;
-                }
+            if (!audio1 || audio1.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+                return;
             }
-            // if (is_controled) { debugger; }
 
-            // 修改: 添加检查防止访问未定义元素的dataset属性
-            var nextElement = $(play).next();
-            // if (nextElement.length === 0) {
-            //     return 0;
-            // }
+            // 获取播放进度(转换的格式为: 00:00)
+            var currentTime = audio1.currentTime;
+            var minute = Math.floor(currentTime / 60); // 分钟
+            var second = currentTime % 60; // 秒数
 
-            if ($(play).text() == "") {
-                var min = 0;
-                var sec = 0;
-            } else {
-                // 修改: 添加检查防止访问未定义元素的dataset属性
-                var nextDOMElement = nextElement[0];
-                if (nextDOMElement && nextDOMElement.dataset) {
-                    var min = Number(nextDOMElement.dataset.minute);
-                    var sec = Number(nextDOMElement.dataset.second);
+            // 查找当前应该显示的歌词
+            var currentElement = $("#lrc_row1");
+            $('#div_lrc > p').each(function () {
+                var min = parseInt($(this).data('minute')) || 0;
+                var sec = parseFloat($(this).data('second')) || 0;
+
+                if (min < minute || (min === minute && sec <= second)) {
+                    currentElement = $(this);
                 } else {
-                    var min = 0;
-                    var sec = 0;
+                    return false; // 跳出循环
                 }
-            }
-            if (is_controled) {//  ms当前时间
-                // alert(num_l,minute,second)
-                if (min <= Number(minute) && (min < Number(minute)) || (min == Number(minute) && sec <= Number(second))) {
-                    // debugger;
-                    //歌词颜色变色
-                    $(play).attr("class", "overPlay");
-                    var nextPlay = $(play).next();
-                    // 修改: 添加检查防止将play设置为未定义的元素
-                    if (nextPlay.length > 0) {
-                        play = nextPlay;
-                        $(play).attr("class", "play");
-                    }
+            });
 
-                    return 1;
-                }
+            // 更新高亮显示的歌词
+            if (!currentElement.is(play)) {
+                $('#div_lrc > p').removeClass('play overPlay');
+                play = currentElement;
+                play.addClass('play');
+
+                // 将已播放的歌词标记为已播放
+                play.prevAll().addClass('overPlay');
+
+                // 歌词滚动到屏幕中央
+                var container = $(".div_DisLrc");
+                var containerHeight = container.height();
+                var elementTop = play.position().top;
+                var elementHeight = play.outerHeight(true);
+                var targetTop = (containerHeight / 2) - (elementHeight / 2) - elementTop;
+
+                $("#div_lrc").css("top", targetTop + "px");
             }
-            return 0;
         }
-        //将歌词添加到div中
-        $(document).ready(function (){LoadLrc;setInterval(lrcDisplay, 200);});
+
+        // 定时更新歌词显示
+        setInterval(lrcDisplay, 100);
+
         //歌词滚动(手动)
-        var time = null;
         function btn_top() {
             var top = parseInt($("#div_lrc").css("top"));
-            $("#div_lrc").css("top", -1 * ((-1 * top) + 100) + "px");
+            $("#div_lrc").css("top", (top + 30) + "px");
         }
+
         function btn_down() {
             var top = parseInt($("#div_lrc").css("top"));
-            if (top <= 0)
-                $("#div_lrc").css("top", -1 * ((-1 * top) - 100) + "px");
+            $("#div_lrc").css("top", (top - 30) + "px");
         }
 
         //调整歌词位置的函数
         function btn_top() {
             var top = parseInt($("#div_lrc").css("top"));
-            $("#div_lrc").css("top", -1 * ((-1 * top) + 30) + "px");
+            $("#div_lrc").css("top", (top + 30) + "px");
         }
         /*
             1.歌词文件不能是默认编码(记事本文件和lrc文件默认为ANSI编码) 只需要改为 UTF-8或
@@ -380,12 +415,14 @@
     <script>
         // 波形图绘制相关变量
         let audioContext;
-        let analyser1, analyser2;
-        let source1, source2;
+        let analyser2;
+        let source2;
         let canvas, canvasCtx;
         let micStream;
         let isRecording = false;
         let isAudioContextInitialized = false;
+        let animationFrameId;
+        let micAnalyser;
 
         // 初始化波形图 - 改为在用户交互后初始化
         function initWaveform() {
@@ -402,29 +439,26 @@
             // 初始化音频上下文
             try {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                // 在用户手势后恢复音频上下文
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
             } catch (e) {
                 console.error('Web Audio API is not supported in this browser', e);
                 return;
             }
 
             // 创建分析器节点
-            analyser1 = audioContext.createAnalyser();
             analyser2 = audioContext.createAnalyser();
 
             // 设置分析器参数
-            analyser1.fftSize = 2048;
-            analyser2.fftSize = 2048;
+            analyser2.fftSize = 256;
 
-            // 连接audio1到分析器
-            if (audio1 && audioContext) {
-                try {
-                    source1 = audioContext.createMediaElementSource(audio1);
-                    source1.connect(analyser1);
-                    analyser1.connect(audioContext.destination);
-                } catch (e) {
-                    console.warn('无法连接audio1到分析器:', e);
-                }
-            }
+            // 设置平滑值
+            analyser2.smoothingTimeConstant = 0.8;
+
+            // 获取最新的audio元素引用
+            const audio2 = document.getElementById("audio2");
 
             // 连接audio2到分析器
             if (audio2 && audioContext) {
@@ -450,6 +484,14 @@
         document.addEventListener('click', initWaveform, { once: true });
         document.addEventListener('touchstart', initWaveform, { once: true });
         document.addEventListener('keydown', initWaveform, { once: true });
+        // 在音频播放时也尝试初始化
+        document.getElementById("audio1").addEventListener('play', function () {
+            initWaveform();
+            // 确保音频上下文正在运行
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        }, { once: true });
 
         // 请求麦克风访问权限
         function requestMicrophoneAccess() {
@@ -461,104 +503,136 @@
                         const micSource = audioContext.createMediaStreamSource(stream);
 
                         // 创建一个新的分析器用于麦克风
-                        const micAnalyser = audioContext.createAnalyser();
-                        micAnalyser.fftSize = 2048;
+                        micAnalyser = audioContext.createAnalyser();
+                        micAnalyser.fftSize = 256;
+                        micAnalyser.smoothingTimeConstant = 0.8;
                         micSource.connect(micAnalyser);
 
-                        // 保存麦克风分析器供绘制使用
-                        window.micAnalyser = micAnalyser;
                         isRecording = true;
                     })
                     .catch(function (err) {
                         console.error('无法访问麦克风:', err);
+                        // 即使没有麦克风权限也继续绘制其他波形
+                        isRecording = false;
                     });
             } else {
                 console.error('浏览器不支持 getUserMedia API');
+                isRecording = false;
             }
         }
 
-        // 绘制波形图
+        // 绘制音调高低横线（K歌评分效果）
         function drawWaveform() {
-            if (!canvasCtx || !analyser1 || !analyser2 || !isAudioContextInitialized) return;
+            // 如果未初始化则尝试初始化
+            if (!isAudioContextInitialized) {
+                // 延迟一小段时间再尝试初始化
+                setTimeout(initWaveform, 100);
+                return;
+            }
+
+            if (!canvasCtx || !analyser2) {
+                animationFrameId = requestAnimationFrame(drawWaveform);
+                return;
+            }
+
+            // 确保音频上下文正在运行
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
 
             // 清除画布
             canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
 
             // 设置波形数据数组
-            const bufferLength1 = analyser1.frequencyBinCount;
             const bufferLength2 = analyser2.frequencyBinCount;
-            const dataArray1 = new Uint8Array(bufferLength1);
             const dataArray2 = new Uint8Array(bufferLength2);
             let dataArrayMic;
 
-            if (window.micAnalyser && isRecording) {
-                const bufferLengthMic = window.micAnalyser.frequencyBinCount;
+            if (micAnalyser && isRecording) {
+                const bufferLengthMic = micAnalyser.frequencyBinCount;
                 dataArrayMic = new Uint8Array(bufferLengthMic);
-                window.micAnalyser.getByteTimeDomainData(dataArrayMic);
+                micAnalyser.getByteFrequencyData(dataArrayMic);
             }
 
             // 获取音频数据
             try {
-                analyser1.getByteTimeDomainData(dataArray1);
-                analyser2.getByteTimeDomainData(dataArray2);
+                analyser2.getByteFrequencyData(dataArray2);
             } catch (e) {
                 console.warn('获取音频数据时出错:', e);
-                requestAnimationFrame(drawWaveform);
+                animationFrameId = requestAnimationFrame(drawWaveform);
                 return;
             }
 
-            // 绘制audio2波形（蓝色）
-            canvasCtx.lineWidth = 2;
-            canvasCtx.strokeStyle = 'rgb(0, 0, 255)'; // 蓝色
-            canvasCtx.beginPath();
+            // 绘制评分背景线
+            drawPitchLines();
 
-            const sliceWidth1 = canvas.width / bufferLength1;
-            let x1 = 0;
+            // 绘制人声频谱（蓝色）
+            // 修改此处：使人声波形图不受音量控制影响
+            drawFrequencyBars(dataArray2, 'rgba(0, 0, 255, 0.7)', canvas.height * 0.5);
 
-            for (let i = 0; i < bufferLength1; i++) {
-                const v1 = dataArray1[i] / 128.0;
-                const y1 = v1 * canvas.height / 2;
-
-                if (i === 0) {
-                    canvasCtx.moveTo(x1, y1);
-                } else {
-                    canvasCtx.lineTo(x1, y1);
-                }
-
-                x1 += sliceWidth1;
-            }
-
-            canvasCtx.lineTo(canvas.width, canvas.height / 2);
-            canvasCtx.stroke();
-
-            // 绘制麦克风波形（红色）
+            // 绘制麦克风输入频谱（红色）
             if (dataArrayMic) {
-                canvasCtx.lineWidth = 2;
-                canvasCtx.strokeStyle = 'rgb(255, 0, 0)'; // 红色
-                canvasCtx.beginPath();
-
-                const sliceWidthMic = canvas.width / dataArrayMic.length;
-                let xMic = 0;
-
-                for (let i = 0; i < dataArrayMic.length; i++) {
-                    const vMic = dataArrayMic[i] / 128.0;
-                    const yMic = vMic * canvas.height / 2;
-
-                    if (i === 0) {
-                        canvasCtx.moveTo(xMic, yMic);
-                    } else {
-                        canvasCtx.lineTo(xMic, yMic);
-                    }
-
-                    xMic += sliceWidthMic;
-                }
-
-                canvasCtx.lineTo(canvas.width, canvas.height / 2);
-                canvasCtx.stroke();
+                drawFrequencyBars(dataArrayMic, 'rgba(255, 0, 0, 0.9)', canvas.height * 0.75);
             }
 
             // 继续绘制动画
-            requestAnimationFrame(drawWaveform);
+            animationFrameId = requestAnimationFrame(drawWaveform);
+        }
+
+        // 绘制评分背景线
+        function drawPitchLines() {
+            canvasCtx.lineWidth = 1;
+
+            // 绘制中心线（标准音高线）
+            canvasCtx.strokeStyle = '#000';
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(0, canvas.height * 0.5);
+            canvasCtx.lineTo(canvas.width, canvas.height * 0.5);
+            canvasCtx.stroke();
+
+            // 绘制上下参考线
+            canvasCtx.strokeStyle = '#ccc';
+            // 上参考线
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(0, canvas.height * 0.25);
+            canvasCtx.lineTo(canvas.width, canvas.height * 0.25);
+            canvasCtx.stroke();
+
+            // 下参考线
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(0, canvas.height * 0.75);
+            canvasCtx.lineTo(canvas.width, canvas.height * 0.75);
+            canvasCtx.stroke();
+
+            // 添加刻度标记
+            canvasCtx.fillStyle = '#666';
+            canvasCtx.font = '12px Arial';
+            canvasCtx.textAlign = 'right';
+            canvasCtx.fillText('高', canvas.width - 10, 20);
+            canvasCtx.fillText('中', canvas.width - 10, canvas.height * 0.5 - 5);
+            canvasCtx.fillText('低', canvas.width - 10, canvas.height - 5);
+        }
+
+        // 绘制频率条
+        function drawFrequencyBars(dataArray, color, centerY) {
+            const barWidth = (canvas.width / dataArray.length) * 2.5;
+            let barHeight;
+            let x = 0;
+
+            canvasCtx.fillStyle = color;
+
+            for (let i = 0; i < dataArray.length; i++) {
+                barHeight = dataArray[i] / 255 * (canvas.height / 4);
+
+                canvasCtx.fillRect(
+                    x,
+                    centerY - barHeight / 2,
+                    barWidth,
+                    barHeight
+                );
+
+                x += barWidth + 1;
+            }
         }
 
         // 窗口大小改变时重置canvas尺寸
@@ -567,6 +641,12 @@
                 canvas.width = canvas.offsetWidth;
                 canvas.height = canvas.offsetHeight;
             }
+        });
+
+        // 页面加载完成后尝试初始化波形图
+        window.addEventListener('load', function () {
+            // 延迟初始化以确保音频元素已加载
+            setTimeout(initWaveform, 500);
         });
     </script>
 </body>
