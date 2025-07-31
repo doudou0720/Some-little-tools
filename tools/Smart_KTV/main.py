@@ -8,13 +8,17 @@ app = flask.Flask(__name__, template_folder="./templates", static_folder="./stat
 def play():
     song_id = flask.request.args.get("id")
     
+    # 如果没有提供歌曲ID，重定向到歌曲列表
+    if not song_id:
+        return flask.redirect(flask.url_for('song_list'))
+    
     # 从data.csv读取歌曲信息
     song_data = None
     with open('data.csv', 'r', encoding='utf-8') as file:
         csv_reader = csv.DictReader(file)
         for row in csv_reader:
             # 假设第一列"Song"作为歌曲ID进行匹配
-            if row['Song'] == song_id or not song_id:
+            if row['Song'] == song_id:
                 song_data = row
                 break
     
@@ -25,15 +29,10 @@ def play():
         singer = song_data['Artist']
         img = song_data['Img']
     else:
-        # 默认值或错误处理
-        name = song_id if song_id else "Unknown"
-        disc = "Unknown Disc"
-        song_name = song_id if song_id else "Unknown Song"
-        singer = "Unknown Artist"
-        img = "default.jpg"
+        # 如果找不到歌曲，重定向到歌曲列表
+        return flask.redirect(flask.url_for('/'))
     
     return flask.render_template("main.html", name=name, disc=disc, song_name=song_name, singer=singer, img=img, name_ins=song_data["Ins"], name_vol=song_data["Vol"], name_lrc=song_data["Lrc"])
-
 
 @app.route("/get_song/<id>")
 def get_song(id):
@@ -92,5 +91,17 @@ def set_single_volume(audio_id):
         return flask.jsonify({"status": "success", "audio": audio_id, "volume": volume})
     except Exception as e:
         return flask.jsonify({"error": str(e)}), 500
+@app.route("/")
+def song_list():
+    """
+    显示歌曲列表
+    """
+    songs = []
+    with open('data.csv', 'r', encoding='utf-8') as file:
+        csv_reader = csv.DictReader(file)
+        for row in csv_reader:
+            songs.append(row)
     
+    return flask.render_template("index.html", songs=songs)
+
 app.run(debug=True,port=8000,host="0.0.0.0")

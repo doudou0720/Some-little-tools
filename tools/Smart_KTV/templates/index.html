@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>歌曲列表</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/bootstrap.min.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/bootstrap-icons.min.css') }}" />
+    <script src="{{ url_for('static',filename='js/bootstrap.bundle.js') }}"></script>
+    <style>
+        body {
+            padding-top: 60px;
+            background-color: #f8f9fa;
+        }
+        .song-card {
+            transition: transform 0.2s;
+            margin-bottom: 20px;
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .song-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        }
+        .song-img {
+            height: 200px;
+            object-fit: cover;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .card-text {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 0.25rem;
+        }
+        .play-btn {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar fixed-top bg-primary navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Audio Player by doudou0528</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h2 class="my-4 text-center">
+            <i class="bi bi-music-note-list"></i> 歌曲列表
+        </h2>
+        
+        {% if songs %}
+        <div class="row">
+            {% for song in songs %}
+            <div class="col-md-4 col-sm-6">
+                <div class="card song-card">
+                    <img src="{{ url_for('static', filename='images/' + song.Img) }}" 
+                         class="card-img-top song-img" 
+                         alt="{{ song.Song }}">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ song.Song }}</h5>
+                        <p class="card-text">
+                            <i class="bi bi-person"></i> {{ song.Artist }}
+                        </p>
+                        <p class="card-text">
+                            <i class="bi bi-disc"></i> {{ song.Disc }}
+                        </p>
+                        <a href="{{ url_for('play') }}?id={{ song.Song }}" 
+                           class="btn btn-primary play-btn">
+                            <i class="bi bi-play-circle"></i> 播放歌曲
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-info text-center" role="alert">
+            <i class="bi bi-info-circle"></i> 暂无歌曲信息
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="{{ url_for('static',filename='js/jquery-3.6.1.js') }}"></script>
+    <script>
+        $(document).ready(function() {
+            // 添加一些交互效果
+            $('.song-card').on('mouseenter', function() {
+                $(this).find('.card-title').addClass('text-primary');
+            }).on('mouseleave', function() {
+                $(this).find('.card-title').removeClass('text-primary');
+            });
+        });
+    </script>
+</body>
+</html>
