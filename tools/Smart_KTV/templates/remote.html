@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>遥控器</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/bootstrap.min.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/bootstrap-icons.min.css') }}" />
+    <script src="{{ url_for('static',filename='js/bootstrap.bundle.js') }}"></script>
+    <style>
+        body {
+            background-color: #333;
+            color: white;
+            padding: 20px;
+        }
+        .remote-btn {
+            width: 80px;
+            height: 80px;
+            margin: 10px;
+            font-size: 24px;
+            border-radius: 50%;
+        }
+        .control-panel {
+            background-color: #444;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .progress-container {
+            background-color: #555;
+            border-radius: 10px;
+            height: 20px;
+            margin: 15px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #007bff;
+            border-radius: 10px;
+            transition: width 0.1s;
+        }
+        .volume-slider {
+            width: 100%;
+            margin: 15px 0;
+        }
+        /* 添加独立音量控制样式 */
+        .individual-volume-control {
+            margin: 10px 0;
+        }
+        .connection-status {
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .connected {
+            background-color: #28a745;
+        }
+        .disconnected {
+            background-color: #dc3545;
+        }
+        .song-selector {
+            width: 100%;
+            margin: 15px 0;
+            background-color: #555;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 class="text-center mb-4">
+            <i class="bi bi-remote-control"></i> KTV遥控器
+        </h2>
+        
+        <div id="connection-status" class="connection-status disconnected">
+            <i class="bi bi-wifi-off"></i> 未连接
+        </div>
+        
+        <div class="control-panel">
+            <div class="text-center">
+                <h4 id="song-title">-</h4>
+                <p id="artist">-</p>
+            </div>
+            
+            <!-- 添加歌曲选择器 -->
+            <div class="form-group">
+                <label for="song-selector">选择歌曲</label>
+                <select id="song-selector" class="song-selector">
+                    <option value="">选择歌曲</option>
+                </select>
+            </div>
+            
+            <div class="progress-container">
+                <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+            </div>
+            
+            <div class="d-flex justify-content-between">
+                <span id="current-time">00:00</span>
+                <span id="duration">00:00</span>
+            </div>
+            
+            <!-- 添加进度条 -->
+            <input type="range" id="progress-slider" class="volume-slider" min="0" max="100" value="0">
+            
+            <div class="text-center my-4">
+                <!-- 合并播放和暂停按钮 -->
+                <button id="play-pause-btn" class="btn btn-primary remote-btn">
+                    <i class="bi bi-play-fill"></i>
+                </button>
+            </div>
+            
+            <div class="volume-control">
+                <label for="volume-slider">音量控制</label>
+                <input type="range" id="volume-slider" class="volume-slider" min="0" max="100" value="100">
+            </div>
+            
+            <!-- 添加独立音量控制 -->
+            <div class="individual-volume-control">
+                <label for="audio1-volume-slider">伴奏音量</label>
+                <input type="range" id="audio1-volume-slider" class="volume-slider" min="0" max="100" value="100">
+                
+                <label for="audio2-volume-slider">人声音量</label>
+                <input type="range" id="audio2-volume-slider" class="volume-slider" min="0" max="100" value="100">
+            </div>
+            
+            <div class="text-center">
+                <button id="vol-up-btn" class="btn btn-primary remote-btn">
+                    <i class="bi bi-volume-up"></i>
+                </button>
+                <button id="vol-down-btn" class="btn btn-primary remote-btn">
+                    <i class="bi bi-volume-down"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static',filename='js/jquery-3.6.1.js') }}"></script>
+    <script>
+        let ws = null;
+        let isConnected = false;
+        let sessionId = null;
+        let currentSong = {
+            title: "-",
+            artist: "-",
+            duration: 0,
+            currentTime: 0
+        };
+        // 添加独立音量变量
+        let audio1Volume = 1.0;
+        let audio2Volume = 1.0;
+        // 添加播放状态变量
+        let isPlaying = false;
+        
+        // 从URL参数获取session_id
+        function getSessionIdFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('session_id');
+        }
+        
+        function connectWebSocket() {
+            try {
+                sessionId = getSessionIdFromUrl();
+                if (!sessionId) {
+                    console.error("缺少session_id参数");
+                    return;
+                }
+                
+                // 修正WebSocket连接URL，使用路径参数而不是查询参数
+                ws = new WebSocket(`ws://${window.location.host}/websocket_remote/${sessionId}`);
+                
+                ws.onopen = function(event) {
+                    console.log("WebSocket连接已建立");
+                    isConnected = true;
+                    updateConnectionStatus();
+                    // 连接成功后主动请求状态信息
+                    setTimeout(() => {
+                        sendCommand('get_status');
+                        sendCommand('get_volume');
+                    }, 100);
+                    // 加载歌曲列表
+                    loadSongList();
+                };
+                
+                ws.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleServerMessage(data);
+                    } catch (e) {
+                        console.error("处理服务器消息出错:", e);
+                    }
+                };
+                
+                ws.onclose = function(event) {
+                    console.log("WebSocket连接已关闭");
+                    isConnected = false;
+                    updateConnectionStatus();
+                    // 尝试重连
+                    setTimeout(connectWebSocket, 3000);
+                };
+                
+                ws.onerror = function(error) {
+                    console.error("WebSocket错误:", error);
+                };
+            } catch (e) {
+                console.error("WebSocket连接失败:", e);
+            }
+        }
+        
+        function updateConnectionStatus() {
+            const statusEl = document.getElementById('connection-status');
+            if (isConnected) {
+                statusEl.className = 'connection-status connected';
+                statusEl.innerHTML = '<i class="bi bi-wifi"></i> 已连接';
+            } else {
+                statusEl.className = 'connection-status disconnected';
+                statusEl.innerHTML = '<i class="bi bi-wifi-off"></i> 未连接';
+            }
+        }
+        
+        function handleServerMessage(data) {
+            switch(data.type) {
+                case 'playback_status':
+                    updatePlaybackStatus(data.status);
+                    break;
+                case 'position_update':
+                    updateProgress(data.currentTime, data.duration);
+                    break;
+                case 'volume_update':
+                    if (data.hasOwnProperty('value')) {
+                        // 单个音量更新
+                        document.getElementById('volume-slider').value = Math.round(data.value * 100);
+                    } else if (data.hasOwnProperty('audio1') && data.hasOwnProperty('audio2')) {
+                        // 双音量更新，取平均值
+                        const avgVolume = (data.audio1 + data.audio2) / 2;
+                        document.getElementById('volume-slider').value = Math.round(avgVolume * 100);
+                    }
+                    // 添加独立音量更新处理
+                    if (data.hasOwnProperty('audio1')) {
+                        audio1Volume = data.audio1;
+                        document.getElementById('audio1-volume-slider').value = Math.round(data.audio1 * 100);
+                    }
+                    if (data.hasOwnProperty('audio2')) {
+                        audio2Volume = data.audio2;
+                        document.getElementById('audio2-volume-slider').value = Math.round(data.audio2 * 100);
+                    }
+                    break;
+                case 'song_changed':
+                    document.getElementById('song-title').textContent = data.song_name;
+                    document.getElementById('artist').textContent = data.artist || '-';
+                    currentSong.title = data.song_name;
+                    currentSong.artist = data.artist || '-';
+                    // 歌曲切换后需要更新时长信息
+                    if (data.duration) {
+                        currentSong.duration = data.duration;
+                        document.getElementById('duration').textContent = formatTime(data.duration);
+                    }
+                    break;
+            }
+        }
+        
+        function updatePlaybackStatus(status) {
+            const playPauseBtn = document.getElementById('play-pause-btn');
+            const icon = playPauseBtn.querySelector('i');
+            
+            if (status === 'playing') {
+                isPlaying = true;
+                icon.className = 'bi bi-pause-fill';
+            } else {
+                isPlaying = false;
+                icon.className = 'bi bi-play-fill';
+            }
+        }
+        
+        function updateProgress(currentTime, duration) {
+            currentSong.currentTime = currentTime || 0;
+            // 只有当duration有效且大于0时才更新歌曲总时长
+            if (duration && duration > 0) {
+                currentSong.duration = duration;
+            }
+            
+            const progressPercent = currentSong.duration > 0 ? (currentTime / currentSong.duration) * 100 : 0;
+            document.getElementById('progress-bar').style.width = progressPercent + '%';
+            document.getElementById('progress-slider').value = progressPercent || 0;
+            
+            document.getElementById('current-time').textContent = formatTime(currentTime || 0);
+            document.getElementById('duration').textContent = formatTime(currentSong.duration || 0);
+        }
+        
+        function updateVolume(audio1, audio2) {
+            // 使用两个音量的平均值作为显示音量
+            const avgVolume = (audio1 + audio2) / 2;
+            document.getElementById('volume-slider').value = Math.round(avgVolume * 100);
+        }
+        
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        function sendCommand(command, data = {}) {
+            if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
+                const message = {session_id: sessionId, command, ...data};
+                ws.send(JSON.stringify(message));
+            }
+        }
+        
+        // 加载歌曲列表
+        function loadSongList() {
+            fetch('/api/songs')
+                .then(response => response.json())
+                .then(songs => {
+                    const selector = document.getElementById('song-selector');
+                    // 清空选项
+                    selector.innerHTML = '<option value="">选择歌曲</option>';
+                    // 添加歌曲选项
+                    songs.forEach(song => {
+                        const option = document.createElement('option');
+                        option.value = song.name;
+                        option.textContent = song.name;
+                        selector.appendChild(option);
+                        
+                        // 如果是当前播放的歌曲，更新显示信息
+                        if (!currentSong.title || currentSong.title === "-") {
+                            document.getElementById('song-title').textContent = song.name;
+                            document.getElementById('artist').textContent = song.artist;
+                            currentSong.title = song.name;
+                            currentSong.artist = song.artist;
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('加载歌曲列表失败:', error);
+                });
+        }
+        
+        // 绑定事件
+        document.addEventListener('DOMContentLoaded', function() {
+            // 播放/暂停按钮
+            document.getElementById('play-pause-btn').addEventListener('click', function() {
+                if (isPlaying) {
+                    sendCommand('pause');
+                } else {
+                    sendCommand('play');
+                }
+            });
+            
+            // 音量加按钮
+            document.getElementById('vol-up-btn').addEventListener('click', function() {
+                sendCommand('volume_up');
+            });
+            
+            // 音量减按钮
+            document.getElementById('vol-down-btn').addEventListener('click', function() {
+                sendCommand('volume_down');
+            });
+            
+            // 音量滑块
+            document.getElementById('volume-slider').addEventListener('input', function(e) {
+                const volume = parseInt(e.target.value) / 100;
+                sendCommand('set_volume', {target: 'both', value: volume});
+            });
+            
+            // 添加独立音量滑块事件监听
+            document.getElementById('audio1-volume-slider').addEventListener('input', function(e) {
+                const volume = parseInt(e.target.value) / 100;
+                sendCommand('set_volume', {target: 'audio1', value: volume});
+            });
+            
+            document.getElementById('audio2-volume-slider').addEventListener('input', function(e) {
+                const volume = parseInt(e.target.value) / 100;
+                sendCommand('set_volume', {target: 'audio2', value: volume});
+            });
+            
+            // 进度滑块
+            document.getElementById('progress-slider').addEventListener('input', function(e) {
+                const percent = parseInt(e.target.value) / 100;
+                const seekTime = (currentSong.duration || 0) * percent;
+                sendCommand('seek', {value: seekTime});
+            });
+            
+            // 歌曲选择器
+            document.getElementById('song-selector').addEventListener('change', function(e) {
+                const songName = e.target.value;
+                if (songName) {
+                    sendCommand('change_song', {song_name: songName});
+                }
+            });
+            
+            // 连接WebSocket
+            connectWebSocket();
+        });
+    </script>
+</body>
+</html>

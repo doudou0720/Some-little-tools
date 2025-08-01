@@ -81,6 +81,44 @@
         .volume-control {
             margin: 10px 0;
         }
+        
+        /* 添加二维码模态框样式 */
+        .qr-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+        
+        .qr-modal-content {
+            background-color: #fff;
+            color: #000;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+            text-align: center;
+        }
+        
+        .qr-code-container {
+            margin: 15px 0;
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover {
+            color: black;
+        }
     </style>
 </head>
 
@@ -88,6 +126,155 @@
 
 <body>
     <script>
+        // 添加WebSocket连接相关代码
+        let ws = null;
+        let isRemoteConnected = false;
+        // 使用从模板传递的session_id
+        let sessionId = "{{ session_id }}";
+        
+        function connectWebSocket() {
+            try {
+                // 修改WebSocket连接URL，使用路径参数传递session_id
+                ws = new WebSocket(`ws://${window.location.host}/websocket/${sessionId}`);
+                
+                ws.onopen = function(event) {
+                    console.log("WebSocket连接已建立");
+                    isRemoteConnected = true;
+                    updateRemoteStatus();
+                    // 连接成功后主动发送状态请求
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({type: 'get_status'}));
+                        ws.send(JSON.stringify({type: 'get_volume'}));
+                    }
+                };
+                
+                ws.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleRemoteCommand(data);
+                    } catch (e) {
+                        console.error("处理远程命令出错:", e);
+                    }
+                };
+                
+                ws.onclose = function(event) {
+                    console.log("WebSocket连接已关闭");
+                    isRemoteConnected = false;
+                    updateRemoteStatus();
+                    // 尝试重连
+                    setTimeout(connectWebSocket, 3000);
+                };
+                
+                ws.onerror = function(error) {
+                    console.error("WebSocket错误:", error);
+                };
+            } catch (e) {
+                console.error("WebSocket连接失败:", e);
+            }
+        }
+        
+        function updateRemoteStatus() {
+            // 可以在这里更新遥控状态显示
+        }
+        
+        function handleRemoteCommand(data) {
+            switch(data.command) {
+                case 'play':
+                    if (audio1.paused) {
+                        audio1.play();
+                        audio2.play();
+                        // 确保发送播放状态更新
+                        if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
+                            ws.send(JSON.stringify({type: 'playback_status', status: 'playing'}));
+                        }
+                    }
+                    break;
+                case 'pause':
+                    if (!audio1.paused) {
+                        audio1.pause();
+                        audio2.pause();
+                        // 确保发送暂停状态更新
+                        if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
+                            ws.send(JSON.stringify({type: 'playback_status', status: 'paused'}));
+                        }
+                    }
+                    break;
+                case 'volume_up':
+                    audio1.volume = Math.min(1.0, audio1.volume + 0.1);
+                    audio2.volume = Math.min(1.0, audio2.volume + 0.1);
+                    updateVolumeDisplay();
+                    break;
+                case 'volume_down':
+                    audio1.volume = Math.max(0.0, audio1.volume - 0.1);
+                    audio2.volume = Math.max(0.0, audio2.volume - 0.1);
+                    updateVolumeDisplay();
+                    break;
+                case 'set_volume':
+                    if (data.target === 'audio1' || data.target === 'both') {
+                        audio1.volume = Math.max(0.0, Math.min(1.0, data.value));
+                    }
+                    if (data.target === 'audio2' || data.target === 'both') {
+                        audio2.volume = Math.max(0.0, Math.min(1.0, data.value));
+                    }
+                    updateVolumeDisplay();
+                    break;
+                case 'seek':
+                    if (data.value !== undefined) {
+                        audio1.currentTime = data.value;
+                        audio2.currentTime = data.value;
+                        // 通知遥控器位置更新
+                        if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
+                            ws.send(JSON.stringify({
+                                type: 'position_update', 
+                                currentTime: audio1.currentTime,
+                                duration: audio1.duration
+                            }));
+                        }
+                    }
+                    break;
+                // 添加切歌处理
+                case 'change_song':
+                    if (data.song_name) {
+                        window.location.href = `/play?name=${encodeURIComponent(data.song_name)}`;
+                    }
+                    break;
+                // 添加获取状态处理
+                case 'get_status':
+                    if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
+                        ws.send(JSON.stringify({
+                            type: 'playback_status',
+                            status: audio1.paused ? 'paused' : 'playing'
+                        }));
+                        ws.send(JSON.stringify({
+                            type: 'position_update',
+                            currentTime: audio1.currentTime,
+                            duration: audio1.duration
+                        }));
+                    }
+                    break;
+                // 添加获取音量处理
+                case 'get_volume':
+                    updateVolumeDisplay();
+                    break;
+            }
+        }
+        
+        function updateVolumeDisplay() {
+            document.getElementById('audio1-volume').value = audio1.volume;
+            document.getElementById('audio2-volume').value = audio2.volume;
+            document.getElementById('audio1-volume-value').textContent = Math.round(audio1.volume * 100) + '%';
+            document.getElementById('audio2-volume-value').textContent = Math.round(audio2.volume * 100) + '%';
+            
+            // 发送音量更新到遥控器
+            if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
+                ws.send(JSON.stringify({
+                    type: 'volume_update',
+                    audio1: audio1.volume,
+                    audio2: audio2.volume
+                }));
+            }
+        }
+        
         function showText() {
             $("#CardText").css("display", "")
             ChangeCard()
@@ -96,6 +283,39 @@
         function hideText() {
             $("#CardText").css("display", "none")
             ChangeCard()
+        }
+        
+        // 添加二维码相关函数
+        function showQRCode() {
+            if (!sessionId) {
+                alert("尚未建立遥控器连接，请稍后重试");
+                return;
+            }
+            
+            const modal = document.getElementById("qr-modal");
+            const qrCodeContainer = document.getElementById("qr-code-container");
+            
+            // 清空之前的二维码
+            qrCodeContainer.innerHTML = "";
+            
+            // 生成二维码
+            const remoteUrl = `${window.location.origin}/remote?session_id=${sessionId}`;
+            
+            // 使用本地qrcode.js库生成二维码
+            const qrCode = new QRCode(qrCodeContainer, {
+                text: remoteUrl,
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            
+            modal.style.display = "block";
+        }
+        
+        function closeQRCode() {
+            document.getElementById("qr-modal").style.display = "none";
         }
     </script>
     <nav class="navbar fixed-top bg-body-tertiary">
@@ -114,6 +334,10 @@
                     <p class="bi bi-file-earmark-music card-text">{{song_name}}</p>
                     <p class="bi bi-person card-text">{{singer}}</p>
                     <p class="bi bi-disc card-text">{{disc}}</p>
+                    <!-- 修改遥控器链接显示方式 -->
+                    <a id="remote-url" href="{{ remote_url }}" class="btn btn-primary" target="_blank">打开遥控器</a>
+                    <!-- 添加二维码按钮 -->
+                    <button class="btn btn-secondary mt-2" onclick="showQRCode()">显示二维码</button>
                 </div>
             </div>
         </div>
@@ -164,6 +388,17 @@
         </div>
     </nav>
 
+    <!-- 添加二维码模态框 -->
+    <div id="qr-modal" class="qr-modal">
+        <div class="qr-modal-content">
+            <span class="close" onclick="closeQRCode()">&times;</span>
+            <h3>遥控器二维码</h3>
+            <p>扫描二维码连接遥控器</p>
+            <div id="qr-code-container" class="qr-code-container"></div>
+            <p>或访问: <a id="qr-remote-url" href="#" target="_blank">遥控器页面</a></p>
+        </div>
+    </div>
+
 
 
 
@@ -179,10 +414,18 @@
         // 音频同步控制
         audio1.addEventListener('play', function () {
             syncAudioPlay(audio2);
+            // 通知遥控器播放状态
+            if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
+                ws.send(JSON.stringify({type: 'playback_status', status: 'playing'}));
+            }
         });
 
         audio1.addEventListener('pause', function () {
             syncAudioPause(audio2);
+            // 通知遥控器暂停状态
+            if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
+                ws.send(JSON.stringify({type: 'playback_status', status: 'paused'}));
+            }
         });
 
         audio1.addEventListener('seeking', function () {
@@ -195,17 +438,47 @@
                 syncAudioPlay(audio1);
                 syncAudioPlay(audio2);
             }
+            // 通知遥控器位置更新
+            if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
+                ws.send(JSON.stringify({
+                    type: 'position_update', 
+                    currentTime: audio1.currentTime,
+                    duration: audio1.duration
+                }));
+            }
         });
-
+        
+        // 添加播放进度更新
+        audio1.addEventListener('timeupdate', function() {
+            if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
+                // 每秒发送一次进度更新
+                if (Math.floor(audio1.currentTime) % 1 === 0) {
+                    ws.send(JSON.stringify({
+                        type: 'position_update', 
+                        currentTime: audio1.currentTime,
+                        duration: audio1.duration
+                    }));
+                }
+            }
+        });
+        
         // 添加对audio2事件的监听，实现双向同步控制
         audio2.addEventListener('play', function () {
             syncAudioPlay(audio1);
+            // 通知遥控器播放状态
+            if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
+                ws.send(JSON.stringify({type: 'playback_status', status: 'playing'}));
+            }
         });
 
         audio2.addEventListener('pause', function () {
             syncAudioPause(audio1);
+            // 通知遥控器暂停状态
+            if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
+                ws.send(JSON.stringify({type: 'playback_status', status: 'paused'}));
+            }
         });
-
+        
         audio2.addEventListener('seeking', function () {
             syncAudioSeek(audio1, audio2.currentTime);
         });
@@ -246,12 +519,14 @@
             var volume = parseFloat(e.target.value);
             audio1.volume = volume;
             document.getElementById('audio1-volume-value').textContent = Math.round(volume * 100) + '%';
+            updateVolumeDisplay();
         });
 
         document.getElementById('audio2-volume').addEventListener('input', function (e) {
             var volume = parseFloat(e.target.value);
             audio2.volume = volume;
             document.getElementById('audio2-volume-value').textContent = Math.round(volume * 100) + '%';
+            updateVolumeDisplay();
         });
         
         // 使用Promise改进歌词加载
@@ -308,6 +583,9 @@
             }).catch(function(error) {
                 console.error("歌词加载失败:", error);
             });
+            
+            // 页面加载完成后连接WebSocket
+            connectWebSocket();
         });
 
         function lrcDisplay() {
@@ -648,6 +926,36 @@
             // 延迟初始化以确保音频元素已加载
             setTimeout(initWaveform, 500);
         });
+    </script>
+    
+    <!-- 添加qrcode.js库 -->
+    <script src="{{ url_for('static', filename='js/qrcode.min.js') }}"></script>
+    <script>
+        // 模态框点击外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById("qr-modal");
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+        
+        // 更新二维码中的链接
+        function updateQRCodeLink() {
+            if (sessionId) {
+                const remoteUrl = `${window.location.origin}/remote?session_id=${sessionId}`;
+                document.getElementById("qr-remote-url").href = remoteUrl;
+                document.getElementById("qr-remote-url").textContent = "遥控器页面";
+            }
+        }
+        
+        // 监听session_id获取事件
+        const originalHandleRemoteCommand = handleRemoteCommand;
+        handleRemoteCommand = function(data) {
+            originalHandleRemoteCommand(data);
+            if (data.type === "session_id") {
+                setTimeout(updateQRCodeLink, 100);
+            }
+        }
     </script>
 </body>
 
