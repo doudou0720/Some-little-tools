@@ -153,6 +153,10 @@
         let audio2Volume = 1.0;
         // 添加播放状态变量
         let isPlaying = false;
+        // 添加连接状态检查定时器
+        let heartbeatInterval = null;
+        let heartbeatTimeout = null;
+        let isPlayPageConnected = false;
         
         // 从URL参数获取session_id
         function getSessionIdFromUrl() {
@@ -174,12 +178,16 @@
                 ws.onopen = function(event) {
                     console.log("WebSocket连接已建立");
                     isConnected = true;
-                    updateConnectionStatus();
+                    isPlayPageConnected = true; // 连接建立时设置为已连接
+                    updateConnectionStatus(); // 连接建立时更新状态显示
                     // 连接成功后主动请求状态信息
                     setTimeout(() => {
                         sendCommand('get_status');
                         sendCommand('get_volume');
+                        sendCommand('get_current_song'); // 添加获取当前歌曲信息
                     }, 100);
+                    // 启动心跳检测
+                    startHeartbeat();
                     // 加载歌曲列表
                     loadSongList();
                 };
@@ -196,7 +204,9 @@
                 ws.onclose = function(event) {
                     console.log("WebSocket连接已关闭");
                     isConnected = false;
+                    isPlayPageConnected = false;
                     updateConnectionStatus();
+                    stopHeartbeat();
                     // 尝试重连
                     setTimeout(connectWebSocket, 3000);
                 };
@@ -209,9 +219,36 @@
             }
         }
         
+        // 启动心跳检测
+        function startHeartbeat() {
+            stopHeartbeat();
+            heartbeatInterval = setInterval(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    sendCommand('ping');
+                    // 设置超时检测
+                    heartbeatTimeout = setTimeout(() => {
+                        isPlayPageConnected = false;
+                        updateConnectionStatus();
+                    }, 3000); // 3秒超时
+                }
+            }, 5000); // 每5秒发送一次心跳
+        }
+        
+        // 停止心跳检测
+        function stopHeartbeat() {
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
+            }
+            if (heartbeatTimeout) {
+                clearTimeout(heartbeatTimeout);
+                heartbeatTimeout = null;
+            }
+        }
+        
         function updateConnectionStatus() {
             const statusEl = document.getElementById('connection-status');
-            if (isConnected) {
+            if (isPlayPageConnected) {
                 statusEl.className = 'connection-status connected';
                 statusEl.innerHTML = '<i class="bi bi-wifi"></i> 已连接';
             } else {
@@ -222,6 +259,15 @@
         
         function handleServerMessage(data) {
             switch(data.type) {
+                case 'pong':
+                    // 收到pong响应，表示播放页面连接正常
+                    isPlayPageConnected = true;
+                    updateConnectionStatus();
+                    if (heartbeatTimeout) {
+                        clearTimeout(heartbeatTimeout);
+                        heartbeatTimeout = null;
+                    }
+                    break;
                 case 'playback_status':
                     updatePlaybackStatus(data.status);
                     break;
@@ -256,6 +302,43 @@
                     if (data.duration) {
                         currentSong.duration = data.duration;
                         document.getElementById('duration').textContent = formatTime(data.duration);
+                        // 更新进度条的最大值
+                        document.getElementById('progress-slider').max = data.duration;
+                    }
+                    break;
+                case 'session_id':
+                    // 当收到session_id时，表示连接已建立
+                    isConnected = true;
+                    updateConnectionStatus();
+                    break;
+                // 添加处理当前歌曲信息的case
+                case 'current_song':
+                    if (data.song) {
+                        document.getElementById('song-title').textContent = data.song.name;
+                        document.getElementById('artist').textContent = data.song.artist || '-';
+                        currentSong.title = data.song.name;
+                        currentSong.artist = data.song.artist || '-';
+                        
+                        // 如果有歌曲时长信息
+                        if (data.song.duration) {
+                            currentSong.duration = data.song.duration;
+                            document.getElementById('duration').textContent = formatTime(data.song.duration);
+                            // 更新进度条的最大值
+                            document.getElementById('progress-slider').max = data.song.duration;
+                        }
+                    }
+                    // 如果有当前播放位置信息
+                    if (data.currentTime !== undefined && data.duration) {
+                        updateProgress(data.currentTime, data.duration);
+                    }
+                    // 如果有音量信息
+                    if (data.audio1 !== undefined && data.audio2 !== undefined) {
+                        audio1Volume = data.audio1;
+                        audio2Volume = data.audio2;
+                        document.getElementById('audio1-volume-slider').value = Math.round(data.audio1 * 100);
+                        document.getElementById('audio2-volume-slider').value = Math.round(data.audio2 * 100);
+                        const avgVolume = (data.audio1 + data.audio2) / 2;
+                        document.getElementById('volume-slider').value = Math.round(avgVolume * 100);
                     }
                     break;
             }
@@ -279,14 +362,20 @@
             // 只有当duration有效且大于0时才更新歌曲总时长
             if (duration && duration > 0) {
                 currentSong.duration = duration;
+                document.getElementById('duration').textContent = formatTime(duration);
+                // 更新进度条的最大值
+                document.getElementById('progress-slider').max = duration;
             }
             
             const progressPercent = currentSong.duration > 0 ? (currentTime / currentSong.duration) * 100 : 0;
             document.getElementById('progress-bar').style.width = progressPercent + '%';
-            document.getElementById('progress-slider').value = progressPercent || 0;
+            document.getElementById('progress-slider').value = currentTime || 0; // 使用实际时间值而不是百分比
             
             document.getElementById('current-time').textContent = formatTime(currentTime || 0);
-            document.getElementById('duration').textContent = formatTime(currentSong.duration || 0);
+            // 确保持续更新时长显示
+            if (currentSong.duration) {
+                document.getElementById('duration').textContent = formatTime(currentSong.duration);
+            }
         }
         
         function updateVolume(audio1, audio2) {
@@ -322,14 +411,6 @@
                         option.value = song.name;
                         option.textContent = song.name;
                         selector.appendChild(option);
-                        
-                        // 如果是当前播放的歌曲，更新显示信息
-                        if (!currentSong.title || currentSong.title === "-") {
-                            document.getElementById('song-title').textContent = song.name;
-                            document.getElementById('artist').textContent = song.artist;
-                            currentSong.title = song.name;
-                            currentSong.artist = song.artist;
-                        }
                     });
                 })
                 .catch(error => {
@@ -377,8 +458,7 @@
             
             // 进度滑块
             document.getElementById('progress-slider').addEventListener('input', function(e) {
-                const percent = parseInt(e.target.value) / 100;
-                const seekTime = (currentSong.duration || 0) * percent;
+                const seekTime = parseInt(e.target.value); // 直接使用时间值
                 sendCommand('seek', {value: seekTime});
             });
             

@@ -131,6 +131,8 @@
         let isRemoteConnected = false;
         // 使用从模板传递的session_id
         let sessionId = "{{ session_id }}";
+        // 添加心跳相关变量
+        let heartbeatInterval = null;
         
         function connectWebSocket() {
             try {
@@ -146,6 +148,8 @@
                         ws.send(JSON.stringify({type: 'get_status'}));
                         ws.send(JSON.stringify({type: 'get_volume'}));
                     }
+                    // 启动心跳
+                    startHeartbeat();
                 };
                 
                 ws.onmessage = function(event) {
@@ -161,6 +165,7 @@
                     console.log("WebSocket连接已关闭");
                     isRemoteConnected = false;
                     updateRemoteStatus();
+                    stopHeartbeat();
                     // 尝试重连
                     setTimeout(connectWebSocket, 3000);
                 };
@@ -170,6 +175,23 @@
                 };
             } catch (e) {
                 console.error("WebSocket连接失败:", e);
+            }
+        }
+        
+        // 心跳机制
+        function startHeartbeat() {
+            stopHeartbeat();
+            heartbeatInterval = setInterval(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({type: 'ping'}));
+                }
+            }, 5000); // 每5秒发送一次心跳
+        }
+        
+        function stopHeartbeat() {
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
             }
         }
         
@@ -255,6 +277,28 @@
                 // 添加获取音量处理
                 case 'get_volume':
                     updateVolumeDisplay();
+                    break;
+                // 添加心跳响应
+                case 'ping':
+                    if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
+                        ws.send(JSON.stringify({type: 'pong'}));
+                    }
+                    break;
+            }
+            
+            // 处理服务器消息类型
+            switch(data.type) {
+                case 'session_id':
+                    // 处理session_id
+                    break;
+                case 'playback_status':
+                    // 处理播放状态
+                    break;
+                case 'volume_update':
+                    // 处理音量更新
+                    break;
+                case 'position_update':
+                    // 处理位置更新
                     break;
             }
         }
@@ -956,6 +1000,18 @@
                 setTimeout(updateQRCodeLink, 100);
             }
         }
+        
+        // 当音频元数据加载完成后，发送歌曲信息到遥控器
+        audio1.addEventListener('loadedmetadata', function() {
+            if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
+                ws.send(JSON.stringify({
+                    type: 'song_changed',
+                    song_name: "{{ song_name }}",
+                    artist: "{{ singer }}",
+                    duration: audio1.duration
+                }));
+            }
+        });
     </script>
 </body>
 
