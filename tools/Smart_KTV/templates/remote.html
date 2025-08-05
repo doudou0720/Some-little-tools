@@ -452,14 +452,30 @@
             });
             
             // 添加独立音量滑块事件监听
+            let audio1VolumeTimeout = null;
             document.getElementById('audio1-volume-slider').addEventListener('input', function(e) {
                 const volume = parseInt(e.target.value) / 100;
-                sendCommand('set_volume', {target: 'audio1', value: volume});
+                // 清除之前的定时器
+                if (audio1VolumeTimeout) {
+                    clearTimeout(audio1VolumeTimeout);
+                }
+                // 设置新的定时器，延迟发送命令
+                audio1VolumeTimeout = setTimeout(() => {
+                    sendCommand('set_volume', {target: 'audio1', value: volume});
+                }, 100); // 100ms防抖延迟
             });
             
+            let audio2VolumeTimeout = null;
             document.getElementById('audio2-volume-slider').addEventListener('input', function(e) {
                 const volume = parseInt(e.target.value) / 100;
-                sendCommand('set_volume', {target: 'audio2', value: volume});
+                // 清除之前的定时器
+                if (audio2VolumeTimeout) {
+                    clearTimeout(audio2VolumeTimeout);
+                }
+                // 设置新的定时器，延迟发送命令
+                audio2VolumeTimeout = setTimeout(() => {
+                    sendCommand('set_volume', {target: 'audio2', value: volume});
+                }, 100); // 100ms防抖延迟
             });
             
             // 进度滑块

@@ -379,9 +379,8 @@
                     <p class="bi bi-person card-text">{{singer}}</p>
                     <p class="bi bi-disc card-text">{{disc}}</p>
                     <!-- 修改遥控器链接显示方式 -->
-                    <a id="remote-url" href="{{ remote_url }}" class="btn btn-primary" target="_blank">打开遥控器</a>
-                    <!-- 添加二维码按钮 -->
-                    <button class="btn btn-secondary mt-2" onclick="showQRCode()">显示二维码</button>
+                    <a id="remote-url" href="{{ remote_url }}" class="btn btn-primary" target="_blank" style="display: none;">打开遥控器</a>
+                    
                 </div>
             </div>
         </div>
@@ -400,35 +399,38 @@
         </div>
     </div>
 
-    <!-- 音量控制 -->
-    <div class="row mt-3">
-        <div class="col-6">
-            <div class="volume-control">
-                <label for="audio1-volume">伴奏音量:</label>
-                <input type="range" id="audio1-volume" min="0" max="1" step="0.01" value="1">
-                <span id="audio1-volume-value">100%</span>
-            </div>
-        </div>
-        <div class="col-6">
-            <div class="volume-control">
-                <label for="audio2-volume">人声音量:</label>
-                <input type="range" id="audio2-volume" min="0" max="1" step="0.01" value="1">
-                <span id="audio2-volume-value">100%</span>
-            </div>
-        </div>
-    </div>
+
 
     <!-- 播放器控件 -->
     <nav class="navbar fixed-bottom bg-body-tertiary">
         <div class="container-fluid">
-            <div class="div_audio">
-                <audio id="audio1" controls="controls" autoplay="autoplay">
+            <div class="row div_audio">
+                <audio id="audio1" controls="controls">
                     <source src="{{ url_for('static',filename='audios/'+name_ins) }}" type="audio/mpeg">
                 </audio>
-                <audio id="audio2" controls="controls" autoplay="autoplay">
+                <audio id="audio2" controls="controls" >
                     <source src="{{ url_for('static',filename='audios/'+name_vol) }}" type="audio/mpeg">
                 </audio>
             </div>
+            <!-- 音量控制 -->
+            <div class="row mt-3">
+                <div class="col-6">
+                    <div class="volume-control">
+                        <label for="audio1-volume">伴奏音量:</label>
+                        <input type="range" id="audio1-volume" min="0" max="1" step="0.01" value="1">
+                        <span id="audio1-volume-value">100%</span>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="volume-control">
+                        <label for="audio2-volume">人声音量:</label>
+                        <input type="range" id="audio2-volume" min="0" max="1" step="0.01" value="1">
+                        <span id="audio2-volume-value">100%</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 添加二维码按钮 -->
+            <button class="btn btn-secondary mt-2" onclick="showQRCode()">显示二维码</button>
         </div>
     </nav>
 
