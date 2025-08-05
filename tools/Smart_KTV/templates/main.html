@@ -257,7 +257,7 @@
                 // 添加切歌处理
                 case 'change_song':
                     if (data.song_name) {
-                        window.location.href = `/play?name=${encodeURIComponent(data.song_name)}`;
+                        window.location.href = `/play?name=${encodeURIComponent(data.song_name)}&session_id=${encodeURIComponent(sessionId)}`;
                     }
                     break;
                 // 添加获取状态处理
@@ -1004,7 +1004,7 @@
         // 当音频元数据加载完成后，发送歌曲信息到遥控器
         audio1.addEventListener('loadedmetadata', function() {
             if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
-                ws.send(JSON.stringify({
+                ws.send(json.dumps({
                     type: 'song_changed',
                     song_name: "{{ song_name }}",
                     artist: "{{ singer }}",

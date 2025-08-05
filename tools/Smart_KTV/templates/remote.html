@@ -72,7 +72,7 @@
 <body>
     <div class="container">
         <h2 class="text-center mb-4">
-            <i class="bi bi-remote-control"></i> KTV遥控器
+            <i class="bi bi-remote-control"></i> 遥控器
         </h2>
         
         <div id="connection-status" class="connection-status disconnected">
@@ -112,7 +112,7 @@
                 </button>
             </div>
             
-            <div class="volume-control">
+            <div class="volume-control" style="display: none;">
                 <label for="volume-slider">音量控制</label>
                 <input type="range" id="volume-slider" class="volume-slider" min="0" max="100" value="100">
             </div>
@@ -126,7 +126,7 @@
                 <input type="range" id="audio2-volume-slider" class="volume-slider" min="0" max="100" value="100">
             </div>
             
-            <div class="text-center">
+            <div class="text-center" style="display: none;">
                 <button id="vol-up-btn" class="btn btn-primary remote-btn">
                     <i class="bi bi-volume-up"></i>
                 </button>
@@ -259,6 +259,9 @@
         
         function handleServerMessage(data) {
             switch(data.type) {
+                case 'connected':
+                    console.log("遥控器连接确认:", data.message);
+                    break;
                 case 'pong':
                     // 收到pong响应，表示播放页面连接正常
                     isPlayPageConnected = true;
@@ -340,6 +343,9 @@
                         const avgVolume = (data.audio1 + data.audio2) / 2;
                         document.getElementById('volume-slider').value = Math.round(avgVolume * 100);
                     }
+                    break;
+                case 'error':
+                    console.error("服务器错误:", data.message);
                     break;
             }
         }
@@ -467,6 +473,8 @@
                 const songName = e.target.value;
                 if (songName) {
                     sendCommand('change_song', {song_name: songName});
+                    // 清空选择器的值，避免重复选择同一首歌
+                    e.target.value = '';
                 }
             });
             

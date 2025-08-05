@@ -20,21 +20,24 @@ except ImportError:
 # 存储WebSocket连接
 if websocket_support:
     from threading import Lock
-    connections = {}  # 改为字典，以UUID为键
+    # 使用更复杂的数据结构来存储不同类型的连接
+    connections = {}  # {session_id: {'player': ws, 'remote': ws}}
     connections_lock = Lock()
 
     @sock.route('/websocket/<session_id>')
     def websocket(ws, session_id):
         # 主播放页面的WebSocket连接，使用传入的session_id
         with connections_lock:
-            connections[session_id] = ws
+            if session_id not in connections:
+                connections[session_id] = {'player': None, 'remote': None}
+            connections[session_id]['player'] = ws
         
         try:
             # 发送session_id给客户端
             ws.send(json.dumps({"type": "session_id", "session_id": session_id}))
             while True:
                 data = ws.receive()
-                # 可以处理来自播放页面的消息
+                # 可以处理来自播放页面的消息，并转发给遥控器
                 try:
                     message_data = json.loads(data)
                     # 如果收到获取状态请求，发送当前状态
@@ -44,6 +47,15 @@ if websocket_support:
                     elif message_data.get("type") == "get_volume":
                         # 发送初始音量
                         ws.send(json.dumps({"type": "volume_update", "audio1": 1.0, "audio2": 1.0}))
+                    
+                    # 将消息转发给遥控器
+                    with connections_lock:
+                        if session_id in connections and connections[session_id]['remote']:
+                            try:
+                                connections[session_id]['remote'].send(data)
+                            except Exception as e:
+                                print(f"转发消息到遥控器时出错: {e}")
+                                connections[session_id]['remote'] = None
                 except Exception as e:
                     print(f"处理WebSocket消息时出错: {e}")
         except Exception as e:
@@ -51,12 +63,21 @@ if websocket_support:
         finally:
             with connections_lock:
                 if session_id in connections:
-                    del connections[session_id]
+                    connections[session_id]['player'] = None
+
     # 添加一个新的路由来处理遥控器WebSocket连接
     @sock.route('/websocket_remote/<session_id>')
     def websocket_remote(remote_ws, session_id):
         # 遥控器页面的WebSocket连接
+        with connections_lock:
+            if session_id not in connections:
+                connections[session_id] = {'player': None, 'remote': None}
+            connections[session_id]['remote'] = remote_ws
+            
         try:
+            # 发送连接确认消息
+            remote_ws.send(json.dumps({"type": "connected", "message": "Remote connected"}))
+            
             while True:
                 data = remote_ws.receive()
                 # 将遥控器命令转发给播放页面
@@ -66,13 +87,12 @@ if websocket_support:
                 command_data["session_id"] = session_id
                 
                 with connections_lock:
-                    if session_id in connections:
+                    if session_id in connections and connections[session_id]['player']:
                         try:
-                            connections[session_id].send(json.dumps(command_data))
+                            connections[session_id]['player'].send(json.dumps(command_data))
                         except Exception as e:
-                            print(f"发送消息到客户端时出错: {e}")
-                            # 从连接字典中移除失效连接
-                            del connections[session_id]
+                            print(f"发送消息到播放页面时出错: {e}")
+                            connections[session_id]['player'] = None
                     else:
                         print(f"未找到session_id {session_id} 的播放页面连接")
                         # 通知遥控器连接失败
@@ -87,11 +107,16 @@ if websocket_support:
             print(f"遥控器WebSocket连接错误: {e}")
         finally:
             print(f"遥控器 {session_id} 连接已断开")
+            with connections_lock:
+                if session_id in connections:
+                    connections[session_id]['remote'] = None
 
 @app.route("/play")
 def play():
     # 修改为通过歌曲名称查找
     song_name = flask.request.args.get("name")
+    # 获取可能存在的session_id参数
+    session_id = flask.request.args.get("session_id")
     
     # 如果没有提供歌曲名称，重定向到歌曲列表
     if not song_name:
@@ -117,12 +142,12 @@ def play():
         # 如果找不到歌曲，重定向到歌曲列表
         return flask.redirect(flask.url_for('song_list'))
     
-    # 生成session_id并传递给模板
-    session_id = str(uuid.uuid4())
+    # 如果没有session_id，则生成新的session_id
+    if not session_id:
+        session_id = str(uuid.uuid4())
     remote_url = f"/remote?session_id={session_id}"
     
     return flask.render_template("main.html", name=name, disc=disc, song_name=song_name, singer=singer, img=img, name_ins=song_data["Ins"], name_lrc=song_data["Lrc"], name_vol=song_data["Vol"], remote_url=remote_url, session_id=session_id)
-
 @app.route("/get_song/<id>")
 def get_song(id):
     with open('data.csv', 'r') as read_obj:
