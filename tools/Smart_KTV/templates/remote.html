@@ -67,6 +67,13 @@
             border-radius: 5px;
             padding: 10px;
         }
+        /* 添加校准状态样式 */
+        .calibration-info {
+            background-color: #555;
+            border-radius: 10px;
+            padding: 10px;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -134,6 +141,19 @@
                     <i class="bi bi-volume-down"></i>
                 </button>
             </div>
+            
+            <!-- 添加音频校准控制 -->
+            <div class="calibration-info">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>同步状态:</span>
+                    <span id="remote-sync-status" class="text-warning">未知</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>上次校准:</span>
+                    <span id="remote-last-calibration">-</span>
+                </div>
+                <button id="calibrate-btn" class="btn btn-warning w-100">手动校准</button>
+            </div>
         </div>
     </div>
 
@@ -157,6 +177,9 @@
         let heartbeatInterval = null;
         let heartbeatTimeout = null;
         let isPlayPageConnected = false;
+        // 添加音频同步状态变量
+        let syncStatus = 'unknown';
+        let lastCalibrationTime = null;
         
         // 从URL参数获取session_id
         function getSessionIdFromUrl() {
@@ -295,6 +318,37 @@
                         audio2Volume = data.audio2;
                         document.getElementById('audio2-volume-slider').value = Math.round(data.audio2 * 100);
                     }
+                    break;
+                // 添加处理音频校准消息
+                case 'audio_calibrated':
+                    lastCalibrationTime = new Date();
+                    document.getElementById('remote-last-calibration').textContent = lastCalibrationTime.toLocaleTimeString();
+                    // 显示校准完成提示
+                    const calibrationAlert = document.createElement('div');
+                    calibrationAlert.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                    calibrationAlert.style = 'top: 10px; right: 10px; z-index: 1000;';
+                    calibrationAlert.role = 'alert';
+                    calibrationAlert.innerHTML = '音频已校准!';
+                    document.body.appendChild(calibrationAlert);
+                    
+                    // 3秒后自动消失
+                    setTimeout(() => {
+                        if (calibrationAlert.parentNode) {
+                            calibrationAlert.parentNode.removeChild(calibrationAlert);
+                        }
+                    }, 3000);
+                    break;
+                // 添加处理同步状态消息
+                case 'sync_status':
+                    const syncStatusEl = document.getElementById('remote-sync-status');
+                    if (data.status === 'sync') {
+                        syncStatusEl.textContent = '同步正常';
+                        syncStatusEl.className = 'text-success';
+                    } else {
+                        syncStatusEl.textContent = '不同步 (' + data.diff.toFixed(3) + 's)';
+                        syncStatusEl.className = 'text-danger';
+                    }
+                    syncStatus = data.status;
                     break;
                 case 'song_changed':
                     document.getElementById('song-title').textContent = data.song_name;
@@ -443,6 +497,11 @@
             // 音量减按钮
             document.getElementById('vol-down-btn').addEventListener('click', function() {
                 sendCommand('volume_down');
+            });
+            
+            // 添加校准按钮事件
+            document.getElementById('calibrate-btn').addEventListener('click', function() {
+                sendCommand('calibrate_audio');
             });
             
             // 音量滑块

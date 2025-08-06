@@ -361,6 +361,50 @@
         function closeQRCode() {
             document.getElementById("qr-modal").style.display = "none";
         }
+        
+        // 添加音频同步校准相关函数
+        function calibrateAudio() {
+            document.getElementById('calibration-status').textContent = '校准中';
+            // 记录当前时间作为校准点
+            const calibrateTime = audio1.currentTime;
+            syncAudioSeek(audio2, calibrateTime);
+            
+            // 发送校准完成消息到遥控器
+            if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
+                ws.send(JSON.stringify({
+                    type: 'audio_calibrated',
+                    time: calibrateTime
+                }));
+            }
+            
+            // 更新校准状态显示
+            document.getElementById('calibration-status').textContent = '已校准';
+            document.getElementById('last-calibration').textContent = new Date().toLocaleTimeString();
+        }
+        
+        // 定期检查音频同步状态
+        function checkAudioSync() {
+            const timeDiff = Math.abs(audio1.currentTime - audio2.currentTime);
+            const syncStatusEl = document.getElementById('sync-status');
+            
+            // 如果时间差超过0.1秒，则显示不同步
+            if (timeDiff > 0.1) {
+                syncStatusEl.textContent = '不同步 (' + timeDiff.toFixed(3) + 's)';
+                syncStatusEl.className = 'text-danger';
+            } else {
+                syncStatusEl.textContent = '同步正常';
+                syncStatusEl.className = 'text-success';
+            }
+            
+            // 发送同步状态到遥控器
+            if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
+                ws.send(JSON.stringify({
+                    type: 'sync_status',
+                    diff: timeDiff,
+                    status: timeDiff > 0.1 ? 'desync' : 'sync'
+                }));
+            }
+        }
     </script>
     <nav class="navbar fixed-top bg-body-tertiary">
         <div class="container-fluid">
@@ -442,6 +486,22 @@
             <p>扫描二维码连接遥控器</p>
             <div id="qr-code-container" class="qr-code-container"></div>
             <p>或访问: <a id="qr-remote-url" href="#" target="_blank">遥控器页面</a></p>
+        </div>
+    </div>
+    
+    <!-- 添加音频同步状态显示 -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1000">
+        <div class="card text-dark" style="width: 250px;">
+            <div class="card-header">音频同步状态</div>
+            <div class="card-body">
+                <p class="card-text">
+                    状态: <span id="sync-status" class="text-success">未知</span>
+                </p>
+                <p class="card-text">
+                    上次校准: <span id="last-calibration">从未</span>
+                </p>
+                <button class="btn btn-primary btn-sm" onclick="calibrateAudio()">手动校准</button>
+            </div>
         </div>
     </div>
 
@@ -632,6 +692,9 @@
             
             // 页面加载完成后连接WebSocket
             connectWebSocket();
+            
+            // 启动音频同步检查定时器，每2秒检查一次
+            setInterval(checkAudioSync, 500);
         });
 
         function lrcDisplay() {
