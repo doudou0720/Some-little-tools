@@ -659,25 +659,25 @@
                 if (!audioContext) {
                     audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 }
-                
+
                 // 创建增益节点用于音量控制
                 audio1Gain = audioContext.createGain();
                 audio2Gain = audioContext.createGain();
-                
+
                 // 连接增益节点到输出
                 audio1Gain.connect(audioContext.destination);
                 audio2Gain.connect(audioContext.destination);
-                
+
                 // 加载音频文件
                 loadAudioFile("{{ url_for('static',filename='audios/'+name_ins) }}", 1);
                 loadAudioFile("{{ url_for('static',filename='audios/'+name_vol) }}", 2);
-                
+
                 console.log("Web Audio API 初始化成功");
             } catch (e) {
                 console.error("Web Audio API 初始化失败:", e);
             }
         }
-        
+
         // 检查音频是否加载完成并更新按钮状态
         function checkAudioLoadedAndUpdateButton() {
             const syncBtn = document.getElementById('sync-btn');
@@ -685,13 +685,13 @@
             const syncBtnSpinner = document.getElementById('sync-btn-spinner');
             const playBtn = document.getElementById('play-btn');
             const playBtnSpinner = document.getElementById('play-btn-spinner');
-            
+
             if (audio1Buffer && audio2Buffer) {
                 // 音频加载完成，启用按钮
                 syncBtn.disabled = false;
                 syncBtnText.textContent = '音频同步';
                 syncBtnSpinner.style.display = 'none';
-                
+
                 // 同时启用播放按钮
                 playBtn.disabled = false;
                 playBtnSpinner.style.display = 'none';
@@ -700,21 +700,21 @@
                 syncBtn.disabled = true;
                 syncBtnText.textContent = '音频加载中';
                 syncBtnSpinner.style.display = 'inline-block';
-                
+
                 // 同时禁用播放按钮并显示加载状态
                 playBtn.disabled = true;
                 playBtnSpinner.style.display = 'inline-block';
             }
         }
-        
+
         // 加载音频文件
         function loadAudioFile(url, audioNum) {
             var request = new XMLHttpRequest();
             request.open('GET', url, true);
             request.responseType = 'arraybuffer';
-            
-            request.onload = function() {
-                audioContext.decodeAudioData(request.response, function(buffer) {
+
+            request.onload = function () {
+                audioContext.decodeAudioData(request.response, function (buffer) {
                     if (audioNum === 1) {
                         audio1Buffer = buffer;
                     } else {
@@ -723,15 +723,15 @@
                     console.log("音频文件 " + audioNum + " 加载完成");
                     // 检查音频加载状态并更新按钮
                     checkAudioLoadedAndUpdateButton();
-                }, function(e) {
+                }, function (e) {
                     console.error("音频解码失败:", e);
                 });
             }
-            
-            request.onerror = function() {
+
+            request.onerror = function () {
                 console.error("音频文件加载失败");
             }
-            
+
             request.send();
         }
 
@@ -774,7 +774,7 @@
                         </div>
                     `;
                     popoverInstance._config.content = content;
-                    
+
                     // 如果popover当前是显示状态，需要更新显示内容
                     if (popoverInstance.tip) {
                         const contentElement = popoverInstance.tip.querySelector('.popover-body');
@@ -800,7 +800,7 @@
         // 定期检查音频同步状态
         function checkAudioSync() {
             const timeDiff = Math.abs(getCurrentTime(1) - getCurrentTime(2));
-            
+
             // 发送同步状态到遥控器
             if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
                 ws.send(JSON.stringify({
@@ -809,7 +809,7 @@
                     status: timeDiff > 0.1 ? 'desync' : 'sync'
                 }));
             }
-            
+
             // 更新popover中的状态显示
             const popover = document.querySelector('[data-bs-toggle="popover"]');
             if (popover) {
@@ -829,7 +829,7 @@
                         </div>
                     `;
                     popoverInstance._config.content = content;
-                    
+
                     // 如果popover当前是显示状态，需要更新显示内容
                     if (popoverInstance.tip) {
                         const contentElement = popoverInstance.tip.querySelector('.popover-body');
@@ -892,10 +892,8 @@
     <nav class="navbar fixed-top bg-body-tertiary">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">Title</a>
-            <button type="button" class="btn btn-info btn-sm" id="sync-btn" data-bs-toggle="popover" data-bs-placement="bottom" 
-                    data-bs-html="true" 
-                    data-bs-title="音频同步状态" 
-                    data-bs-content='
+            <button type="button" class="btn btn-info btn-sm" id="sync-btn" data-bs-toggle="popover"
+                data-bs-placement="bottom" data-bs-html="true" data-bs-title="音频同步状态" data-bs-content='
                         <div>
                             <p class="card-text mb-1">
                                 状态: <span id="sync-status" class="text-success">未知</span>
@@ -907,7 +905,8 @@
                         </div>
                     ' disabled>
                 <span id="sync-btn-text">音频同步</span>
-                <span id="sync-btn-spinner" class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
+                <span id="sync-btn-spinner" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"
+                    style="display: none;"></span>
             </button>
         </div>
     </nav>
@@ -954,7 +953,8 @@
                 <div class="col-auto d-flex align-items-center">
                     <button class="playback-btn" id="play-btn" onclick="togglePlay()" disabled>
                         <i class="bi bi-play-fill"></i>
-                        <span id="play-btn-spinner" class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
+                        <span id="play-btn-spinner" class="spinner-border spinner-border-sm" role="status"
+                            aria-hidden="true" style="display: none;"></span>
                     </button>
                 </div>
 
@@ -1047,25 +1047,25 @@
                 if (!audioContext) {
                     audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 }
-                
+
                 // 创建增益节点用于音量控制
                 audio1Gain = audioContext.createGain();
                 audio2Gain = audioContext.createGain();
-                
+
                 // 连接增益节点到输出
                 audio1Gain.connect(audioContext.destination);
                 audio2Gain.connect(audioContext.destination);
-                
+
                 // 加载音频文件
                 loadAudioFile("{{ url_for('static',filename='audios/'+name_ins) }}", 1);
                 loadAudioFile("{{ url_for('static',filename='audios/'+name_vol) }}", 2);
-                
+
                 console.log("Web Audio API 初始化成功");
             } catch (e) {
                 console.error("Web Audio API 初始化失败:", e);
             }
         }
-        
+
         // 检查音频是否加载完成并更新按钮状态
         function checkAudioLoadedAndUpdateButton() {
             const syncBtn = document.getElementById('sync-btn');
@@ -1073,13 +1073,13 @@
             const syncBtnSpinner = document.getElementById('sync-btn-spinner');
             const playBtn = document.getElementById('play-btn');
             const playBtnSpinner = document.getElementById('play-btn-spinner');
-            
+
             if (audio1Buffer && audio2Buffer) {
                 // 音频加载完成，启用按钮
                 syncBtn.disabled = false;
                 syncBtnText.textContent = '音频同步';
                 syncBtnSpinner.style.display = 'none';
-                
+
                 // 同时启用播放按钮
                 playBtn.disabled = false;
                 playBtnSpinner.style.display = 'none';
@@ -1088,21 +1088,21 @@
                 syncBtn.disabled = true;
                 syncBtnText.textContent = '音频加载中';
                 syncBtnSpinner.style.display = 'inline-block';
-                
+
                 // 同时禁用播放按钮并显示加载状态
                 playBtn.disabled = true;
                 playBtnSpinner.style.display = 'inline-block';
             }
         }
-        
+
         // 加载音频文件
         function loadAudioFile(url, audioNum) {
             var request = new XMLHttpRequest();
             request.open('GET', url, true);
             request.responseType = 'arraybuffer';
-            
-            request.onload = function() {
-                audioContext.decodeAudioData(request.response, function(buffer) {
+
+            request.onload = function () {
+                audioContext.decodeAudioData(request.response, function (buffer) {
                     if (audioNum === 1) {
                         audio1Buffer = buffer;
                     } else {
@@ -1111,15 +1111,15 @@
                     console.log("音频文件 " + audioNum + " 加载完成");
                     // 检查音频加载状态并更新按钮
                     checkAudioLoadedAndUpdateButton();
-                }, function(e) {
+                }, function (e) {
                     console.error("音频解码失败:", e);
                 });
             }
-            
-            request.onerror = function() {
+
+            request.onerror = function () {
                 console.error("音频文件加载失败");
             }
-            
+
             request.send();
         }
 
@@ -1633,6 +1633,10 @@
             if (canvas) {
                 canvas.width = canvas.offsetWidth;
                 canvas.height = canvas.offsetHeight;
+                // 重新启动绘制循环
+                if (isAudioContextInitialized && !animationFrameId) {
+                    animationFrameId = requestAnimationFrame(drawWaveform);
+                }
             }
         });
 
@@ -1721,21 +1725,29 @@
             // 防止重复初始化
             if (isAudioContextInitialized) return;
 
+            console.log("开始初始化波形图");
             canvas = document.getElementById('waveform');
+            if (!canvas) {
+                console.error("无法找到canvas元素");
+                return;
+            }
+            
             canvasCtx = canvas.getContext('2d');
+            if (!canvasCtx) {
+                console.error("无法获取canvas上下文");
+                return;
+            }
 
             // 设置canvas尺寸
             canvas.width = canvas.offsetWidth;
             canvas.height = canvas.offsetHeight;
+            console.log("Canvas尺寸:", canvas.width, "x", canvas.height);
 
             // 初始化音频上下文
             try {
                 // 使用独立的audioContext变量避免冲突
                 audioContextWaveform = new (window.AudioContext || window.webkitAudioContext)();
-                // 在用户手势后恢复音频上下文
-                if (audioContextWaveform.state === 'suspended') {
-                    audioContextWaveform.resume();
-                }
+                console.log("音频上下文创建成功");
             } catch (e) {
                 console.error('Web Audio API is not supported in this browser', e);
                 return;
@@ -1746,14 +1758,9 @@
 
             // 设置分析器参数
             analyser2.fftSize = 256;
-
-            // 设置平滑值
             analyser2.smoothingTimeConstant = 0.8;
 
-            // 获取最新的audio元素引用
-
-            // 连接audio2到分析器
-            // 修改为连接Web Audio API的节点
+            // 连接audio2(人声)到分析器
             if (audio2Buffer && audioContextWaveform) {
                 try {
                     source2 = audioContextWaveform.createBufferSource();
@@ -1764,12 +1771,17 @@
                     source2.connect(gainNode);
                     gainNode.connect(analyser2);
                     analyser2.connect(audioContextWaveform.destination);
+                    
+                    // 启动人声播放以确保数据流动（静音播放）
+                    source2.start(0);
+                    console.log("人声源已连接并启动");
                 } catch (e) {
                     console.warn('无法连接audio2到分析器:', e);
                 }
             }
 
             isAudioContextInitialized = true;
+            console.log("波形图初始化完成");
 
             // 开始绘制波形
             drawWaveform();
@@ -1778,24 +1790,13 @@
             requestMicrophoneAccess();
         }
 
-        // 在用户交互后初始化音频上下文
-        document.addEventListener('click', initWaveform, { once: true });
-        document.addEventListener('touchstart', initWaveform, { once: true });
-        document.addEventListener('keydown', initWaveform, { once: true });
-        // 在音频播放时也尝试初始化
-        document.addEventListener('click', function () {
-            initWaveform();
-            // 确保音频上下文正在运行
-            if (audioContextWaveform && audioContextWaveform.state === 'suspended') {
-                audioContextWaveform.resume();
-            }
-        }, { once: true });
-
         // 请求麦克风访问权限
         function requestMicrophoneAccess() {
+            console.log('请求麦克风访问权限');
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 navigator.mediaDevices.getUserMedia({ audio: true, video: false })
                     .then(function (stream) {
+                        console.log('成功获取麦克风访问权限');
                         micStream = stream;
                         // 创建麦克风源并连接到分析器
                         const micSource = audioContextWaveform.createMediaStreamSource(stream);
@@ -1807,6 +1808,10 @@
                         micSource.connect(micAnalyser);
 
                         isRecording = true;
+                        console.log('麦克风已连接并开始录制');
+                        
+                        // 启动定时采样，避免采样过快导致卡顿
+                        setInterval(sampleMicrophoneData, 100); // 每100ms采样一次
                     })
                     .catch(function (err) {
                         console.error('无法访问麦克风:', err);
@@ -1819,6 +1824,71 @@
             }
         }
 
+        // 定时采样麦克风数据
+        function sampleMicrophoneData() {
+            if (micAnalyser && isRecording) {
+                if (!window.microphoneHistory) {
+                    window.microphoneHistory = [];
+                }
+
+                // 获取麦克风数据
+                const bufferLengthMic = micAnalyser.frequencyBinCount;
+                const dataArrayMic = new Uint8Array(bufferLengthMic);
+                micAnalyser.getByteFrequencyData(dataArrayMic);
+                
+                // 检查数据是否有效
+                let sum = 0;
+                for (let i = 0; i < dataArrayMic.length; i++) {
+                    sum += dataArrayMic[i];
+                }
+                
+                // 将当前数据添加到麦克风历史记录中
+                window.microphoneHistory.push({
+                    data: [...dataArrayMic],
+                    time: performance.now()
+                });
+
+                // 限制历史记录数量，避免内存泄漏
+                if (window.microphoneHistory.length > 100) {
+                    window.microphoneHistory.shift();
+                }
+            }
+        }
+
+        // 在用户交互后初始化音频上下文
+        document.addEventListener('click', function () {
+            if (!isAudioContextInitialized) {
+                initWaveform();
+            }
+            // 确保音频上下文正在运行
+            if (audioContextWaveform && audioContextWaveform.state === 'suspended') {
+                audioContextWaveform.resume();
+            }
+        });
+        
+        document.addEventListener('touchstart', function () {
+            if (!isAudioContextInitialized) {
+                initWaveform();
+            }
+            // 确保音频上下文正在运行
+            if (audioContextWaveform && audioContextWaveform.state === 'suspended') {
+                audioContextWaveform.resume();
+            }
+        });
+        
+        // 页面显示或获得焦点时重新初始化
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden && !isAudioContextInitialized) {
+                initWaveform();
+            }
+        });
+        
+        window.addEventListener('focus', function () {
+            if (!isAudioContextInitialized) {
+                initWaveform();
+            }
+        });
+
         // 绘制音调高低横线（K歌评分效果）
         function drawWaveform() {
             // 如果未初始化则尝试初始化
@@ -1828,7 +1898,7 @@
                 return;
             }
 
-            if (!canvasCtx || !analyser2) {
+            if (!canvasCtx || !canvas) {
                 animationFrameId = requestAnimationFrame(drawWaveform);
                 return;
             }
@@ -1842,95 +1912,167 @@
             canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
 
             // 设置波形数据数组
-            const bufferLength2 = analyser2.frequencyBinCount;
-            const dataArray2 = new Uint8Array(bufferLength2);
-            let dataArrayMic;
-
-            if (micAnalyser && isRecording) {
-                const bufferLengthMic = micAnalyser.frequencyBinCount;
-                dataArrayMic = new Uint8Array(bufferLengthMic);
-                micAnalyser.getByteFrequencyData(dataArrayMic);
+            let dataArray2, dataArrayMic;
+            
+            // 获取人声数据
+            if (analyser2) {
+                const bufferLength2 = analyser2.frequencyBinCount;
+                dataArray2 = new Uint8Array(bufferLength2);
+                try {
+                    analyser2.getByteFrequencyData(dataArray2);
+                } catch (e) {
+                    console.warn('获取人声音频数据时出错:', e);
+                }
+            }
+            
+            // 获取麦克风数据
+            if (window.microphoneHistory && window.microphoneHistory.length > 0) {
+                dataArrayMic = window.microphoneHistory[window.microphoneHistory.length - 1].data;
             }
 
-            // 获取音频数据
-            try {
-                analyser2.getByteFrequencyData(dataArray2);
-            } catch (e) {
-                console.warn('获取音频数据时出错:', e);
-                animationFrameId = requestAnimationFrame(drawWaveform);
-                return;
+            // 绘制中心参考线
+            drawCenterLine();
+
+            // 绘制人声音频谱（蓝色）折线图，铺满整个屏幕
+            if (dataArray2) {
+                drawVocalLineFull(dataArray2, 'rgba(0, 0, 255, 0.7)', canvas.height * 0.5);
             }
 
-            // 绘制评分背景线
-            drawPitchLines();
-
-            // 绘制人声频谱（蓝色）
-            // 修改此处：使人声波形图不受音量控制影响
-            drawFrequencyBars(dataArray2, 'rgba(0, 0, 255, 0.7)', canvas.height * 0.5);
-
-            // 绘制麦克风输入频谱（红色）
+            // 绘制麦克风输入频谱（红色）折线图
+            drawMicrophoneHistoryLine('rgba(255, 0, 0, 0.9)', canvas.height * 0.5);
+            
+            // 绘制麦克风当前位置点
             if (dataArrayMic) {
-                drawFrequencyBars(dataArrayMic, 'rgba(255, 0, 0, 0.9)', canvas.height * 0.75);
+                drawMicrophonePoint(dataArrayMic, 'rgba(255, 0, 0, 1)', canvas.height * 0.5);
             }
 
             // 继续绘制动画
             animationFrameId = requestAnimationFrame(drawWaveform);
         }
 
-        // 绘制评分背景线
-        function drawPitchLines() {
+        // 绘制中心参考线
+        function drawCenterLine() {
+            if (!canvasCtx || !canvas) return;
+            
             canvasCtx.lineWidth = 1;
-
-            // 绘制中心线（标准音高线）
             canvasCtx.strokeStyle = '#000';
             canvasCtx.beginPath();
             canvasCtx.moveTo(0, canvas.height * 0.5);
             canvasCtx.lineTo(canvas.width, canvas.height * 0.5);
             canvasCtx.stroke();
 
-            // 绘制上下参考线
-            canvasCtx.strokeStyle = '#ccc';
-            // 上参考线
-            canvasCtx.beginPath();
-            canvasCtx.moveTo(0, canvas.height * 0.25);
-            canvasCtx.lineTo(canvas.width, canvas.height * 0.25);
-            canvasCtx.stroke();
-
-            // 下参考线
-            canvasCtx.beginPath();
-            canvasCtx.moveTo(0, canvas.height * 0.75);
-            canvasCtx.lineTo(canvas.width, canvas.height * 0.75);
-            canvasCtx.stroke();
-
             // 添加刻度标记
             canvasCtx.fillStyle = '#666';
             canvasCtx.font = '12px Arial';
             canvasCtx.textAlign = 'right';
-            canvasCtx.fillText('高', canvas.width - 10, 20);
-            canvasCtx.fillText('中', canvas.width - 10, canvas.height * 0.5 - 5);
-            canvasCtx.fillText('低', canvas.width - 10, canvas.height - 5);
+            canvasCtx.fillText('人声/麦克风', canvas.width - 10, canvas.height * 0.5 - 5);
         }
 
-        // 绘制频率条
-        function drawFrequencyBars(dataArray, color, centerY) {
-            const barWidth = (canvas.width / dataArray.length) * 2.5;
-            let barHeight;
-            let x = 0;
-
-            canvasCtx.fillStyle = color;
-
-            for (let i = 0; i < dataArray.length; i++) {
-                barHeight = dataArray[i] / 255 * (canvas.height / 4);
-
-                canvasCtx.fillRect(
-                    x,
-                    centerY - barHeight,  // 修改: 从左对齐而不是居中
-                    barWidth,
-                    barHeight
-                );
-
-                x += barWidth + 1;
+        // 绘制人声折线图，铺满整个屏幕
+        function drawVocalLineFull(dataArray, color, centerY) {
+            if (!canvasCtx || !canvas) return;
+            
+            // 绘制铺满整个屏幕的当前人声波形
+            canvasCtx.strokeStyle = color;
+            canvasCtx.lineWidth = 2;
+            canvasCtx.beginPath();
+            
+            // 计算绘制参数
+            const totalWidth = canvas.width;
+            const dataLength = dataArray.length;
+            
+            // 检查数据是否有效
+            if (dataLength === 0) {
+                return;
             }
+            
+            // 绘制铺满整个屏幕的人声波形
+            for (let i = 0; i < dataLength; i++) {
+                // 根据索引计算x位置，铺满整个画布
+                const x = (i / (dataLength - 1)) * totalWidth;
+                
+                // 获取该频率值
+                const value = dataArray[i];
+                // 波形在中心线上下波动 (增加波动幅度)
+                const y = centerY - (value / 255) * (canvas.height / 3);
+                
+                if (i === 0) {
+                    canvasCtx.moveTo(x, y);
+                } else {
+                    canvasCtx.lineTo(x, y);
+                }
+            }
+            
+            canvasCtx.stroke();
+        }
+
+        // 绘制麦克风历史折线图
+        function drawMicrophoneHistoryLine(color, centerY) {
+            if (!canvasCtx || !canvas) return;
+            
+            if (!window.microphoneHistory || window.microphoneHistory.length === 0) {
+                return;
+            }
+
+            // 绘制历史折线图
+            canvasCtx.strokeStyle = color;
+            canvasCtx.lineWidth = 2;
+            canvasCtx.beginPath();
+
+            // 绘制从中心点开始向左延伸的折线图
+            const centerX = canvas.width / 2; // 中心点x坐标
+            const currentTime = performance.now();
+            
+            for (let h = 0; h < window.microphoneHistory.length; h++) {
+                const dataPoint = window.microphoneHistory[h];
+                const age = currentTime - dataPoint.time; // 数据的年龄（毫秒）
+                // 根据年龄计算x位置，从中心点开始向左移动，确保能延伸到最左侧
+                const x = centerX - (age * canvas.width * 0.0005); // 调整移动速度，确保能到达最左侧
+                
+                // 如果已经超出画布左侧，停止绘制
+                if (x < -10) {
+                    break;
+                }
+
+                // 计算该时间点的平均频率值
+                let sum = 0;
+                for (let i = 0; i < dataPoint.data.length; i++) {
+                    sum += dataPoint.data[i];
+                }
+                const avg = sum / dataPoint.data.length;
+                // 波形在中心线上下波动
+                const y = centerY - (avg / 255) * (canvas.height / 3);
+
+                if (h === 0) {
+                    canvasCtx.moveTo(x, y);
+                } else {
+                    canvasCtx.lineTo(x, y);
+                }
+            }
+
+            canvasCtx.stroke();
+        }
+
+        // 绘制麦克风位置点
+        function drawMicrophonePoint(dataArray, color, centerY) {
+            if (!canvasCtx || !canvas) return;
+            
+            // 计算当前麦克风输入的平均值
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
+            }
+            const avg = sum / dataArray.length;
+            const y = centerY - (avg / 255) * (canvas.height / 3);
+
+            // 麦克风点始终显示在中间位置
+            const x = canvas.width / 2;
+
+            // 绘制麦克风位置点
+            canvasCtx.fillStyle = color;
+            canvasCtx.beginPath();
+            canvasCtx.arc(x, y, 5, 0, 2 * Math.PI);
+            canvasCtx.fill();
         }
 
         // 窗口大小改变时重置canvas尺寸
@@ -1939,6 +2081,10 @@
                 canvas.width = canvas.offsetWidth;
                 canvas.height = canvas.offsetHeight;
             }
+            // 重新绘制一次波形图
+            if (isAudioContextInitialized && !animationFrameId) {
+                animationFrameId = requestAnimationFrame(drawWaveform);
+            }
         });
 
         // 页面加载完成后尝试初始化波形图
@@ -1946,6 +2092,64 @@
             // 延迟初始化以确保音频元素已加载
             setTimeout(initWaveform, 500);
         });
+
+        // 在用户交互后初始化音频上下文
+        document.addEventListener('click', function () {
+            initWaveform();
+            // 确保音频上下文正在运行
+            if (audioContextWaveform && audioContextWaveform.state === 'suspended') {
+                audioContextWaveform.resume();
+            }
+        });
+        document.addEventListener('touchstart', function () {
+            initWaveform();
+            // 确保音频上下文正在运行
+            if (audioContextWaveform && audioContextWaveform.state === 'suspended') {
+                audioContextWaveform.resume();
+            }
+        });
+        document.addEventListener('keydown', function () {
+            initWaveform();
+            // 确保音频上下文正在运行
+            if (audioContextWaveform && audioContextWaveform.state === 'suspended') {
+                audioContextWaveform.resume();
+            }
+        });
+
+        // 页面显示或获得焦点时重新初始化
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden && !isAudioContextInitialized) {
+                initWaveform();
+            }
+        });
+
+        window.addEventListener('focus', function () {
+            if (!isAudioContextInitialized) {
+                initWaveform();
+            }
+        });
+
+        // 页面显示时重新初始化波形图绘制
+        document.addEventListener('pageshow', function () {
+            if (!isAudioContextInitialized) {
+                initWaveform();
+            }
+        });
+
+        // 获取人声音频数据
+        function getVocalAudioData() {
+            if (!analyser2) return null;
+
+            const bufferLength = analyser2.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            try {
+                analyser2.getByteFrequencyData(dataArray);
+                return dataArray;
+            } catch (e) {
+                console.warn('获取人声音频数据失败:', e);
+                return null;
+            }
+        }
     </script>
 
     <!-- 添加qrcode.js库 -->
@@ -1978,12 +2182,12 @@
         }
 
         // 当音频元数据加载完成后，发送歌曲信息到遥控器
-        window.addEventListener('load', function() {
+        window.addEventListener('load', function () {
             // 初始化按钮状态
             checkAudioLoadedAndUpdateButton();
-            
+
             // 等待音频加载完成后发送歌曲信息
-            const checkAudioLoaded = setInterval(function() {
+            const checkAudioLoaded = setInterval(function () {
                 if (audio1Buffer && audio2Buffer) {
                     clearInterval(checkAudioLoaded);
                     if (ws && ws.readyState === WebSocket.OPEN && sessionId) {
@@ -1996,7 +2200,7 @@
                     }
                 }
             }, 100);
-            
+
             // 初始化Bootstrap popover
             const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
             popoverTriggerList.map(function (popoverTriggerEl) {

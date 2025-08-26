@@ -11,14 +11,14 @@ import time
 app = flask.Flask(__name__, template_folder="./templates", static_folder="./static")
 app.secret_key = 'your-secret-key-here'
 
-# 播放列表文件路径
+# 节目单文件路径
 PLAYLIST_FILE = 'playlists.json'
 
-# 添加播放列表存储
+# 添加节目单存储
 # 格式: {session_id: {"songs": [song_uuid, ...], "created_at": timestamp, "updated_at": timestamp}}
 playlists = {}
 
-# 加载播放列表数据
+# 加载节目单数据
 def load_playlists():
     global playlists
     if os.path.exists(PLAYLIST_FILE):
@@ -38,20 +38,41 @@ def load_playlists():
                         # 新格式：包含元数据
                         playlists[session_id] = playlist_data
         except Exception as e:
-            print(f"加载播放列表文件时出错: {e}")
+            print(f"加载节目单文件时出错: {e}")
             playlists = {}
     else:
         playlists = {}
 
-# 保存播放列表数据
+# 保存节目单数据
 def save_playlists():
     try:
         with open(PLAYLIST_FILE, 'w', encoding='utf-8') as f:
             json.dump(playlists, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        print(f"保存播放列表文件时出错: {e}")
+        print(f"保存节目单文件时出错: {e}")
 
-# 在应用启动时加载播放列表
+# 主节目单文件路径
+MAIN_PLAYLIST_FILE = 'main_playlist.json'
+
+# 加载主节目单
+def load_main_playlist():
+    if os.path.exists(MAIN_PLAYLIST_FILE):
+        try:
+            with open(MAIN_PLAYLIST_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"加载主节目单文件时出错: {e}")
+    return []
+
+# 保存主节目单
+def save_main_playlist(playlist):
+    try:
+        with open(MAIN_PLAYLIST_FILE, 'w', encoding='utf-8') as f:
+            json.dump(playlist, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"保存主节目单文件时出错: {e}")
+
+# 在应用启动时加载节目单
 load_playlists()
 
 # 添加WebSocket支持
@@ -62,6 +83,7 @@ try:
 except ImportError:
     websocket_support = False
     print("flask_sock not installed. WebSocket功能将不可用。")
+    exit(0)
 
 # 存储WebSocket连接
 if websocket_support:
@@ -307,14 +329,8 @@ def song_list():
         
         return flask.render_template("playlist.html", playlist=songs_details)
     else:
-        # 如果没有节目单，显示歌曲列表
-        songs = []
-        with open('data.csv', 'r', encoding='utf-8') as file:
-            csv_reader = csv.DictReader(file)
-            for row in csv_reader:
-                songs.append(row)
-        
-        return flask.render_template("index.html", songs=songs)
+        # 如果没有节目单，重定向到创建节目单页面
+        return flask.redirect(flask.url_for('create_playlist'))
 
 @app.route("/playlist")
 def view_playlist():
@@ -506,12 +522,12 @@ def get_playlist(session_id):
 @app.route("/api/playlist/<session_id>", methods=["DELETE"])
 def clear_playlist(session_id):
     """
-    清空指定session的播放列表
+    清空指定session的节目单
     """
     try:
         if session_id in playlists:
             del playlists[session_id]
-            # 保存播放列表到文件
+            # 保存节目单到文件
             save_playlists()
             
         return flask.jsonify({"status": "success", "message": "Playlist cleared"})
@@ -521,37 +537,37 @@ def clear_playlist(session_id):
 @app.route("/api/playlist/<session_id>/<song_uuid>", methods=["DELETE"])
 def remove_from_playlist(session_id, song_uuid):
     """
-    从播放列表中移除指定歌曲
+    从节目单中移除指定歌曲
     """
     try:
         if session_id in playlists and song_uuid in playlists[session_id]["songs"]:
             playlists[session_id]["songs"].remove(song_uuid)
             playlists[session_id]["updated_at"] = time.time()
             
-            # 如果播放列表为空，删除它
+            # 如果节目单为空，删除它
             if not playlists[session_id]["songs"]:
                 del playlists[session_id]
             
-            # 保存播放列表到文件
+            # 保存节目单到文件
             save_playlists()
                 
         return flask.jsonify({"status": "success", "message": "Song removed from playlist"})
     except Exception as e:
         return flask.jsonify({"error": str(e)}), 500
 
-# 添加获取所有播放列表历史记录的API
+# 添加获取所有节目单历史记录的API
 @app.route("/api/playlists/history", methods=["GET"])
 def get_playlists_history():
     """
-    获取所有播放列表历史记录，按时间顺序排列
+    获取所有节目单历史记录，按时间顺序排列
     """
     try:
         history = []
-        # 从播放列表数据中提取历史记录
+        # 从节目单数据中提取历史记录
         for session_id, playlist_data in playlists.items():
             songs = playlist_data.get("songs", [])
-            if songs:  # 只包含非空的播放列表
-                # 获取播放列表中歌曲的详细信息
+            if songs:  # 只包含非空的节目单
+                # 获取节目单中歌曲的详细信息
                 songs_details = []
                 with open('data.csv', 'r', encoding='utf-8') as file:
                     csv_reader = csv.DictReader(file)
@@ -568,7 +584,7 @@ def get_playlists_history():
                             'img': song_info['Img']
                         })
                 
-                if songs_details:  # 只添加有歌曲的播放列表
+                if songs_details:  # 只添加有歌曲的节目单
                     history.append({
                         'session_id': session_id,
                         'songs': songs_details,
@@ -587,26 +603,5 @@ def get_playlists_history():
         })
     except Exception as e:
         return flask.jsonify({"error": str(e)}), 500
-
-# 主节目单文件路径
-MAIN_PLAYLIST_FILE = 'main_playlist.json'
-
-# 加载主节目单
-def load_main_playlist():
-    if os.path.exists(MAIN_PLAYLIST_FILE):
-        try:
-            with open(MAIN_PLAYLIST_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"加载主节目单文件时出错: {e}")
-    return []
-
-# 保存主节目单
-def save_main_playlist(playlist):
-    try:
-        with open(MAIN_PLAYLIST_FILE, 'w', encoding='utf-8') as f:
-            json.dump(playlist, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(f"保存主节目单文件时出错: {e}")
 
 app.run(debug=True,port=8000,host="0.0.0.0")
