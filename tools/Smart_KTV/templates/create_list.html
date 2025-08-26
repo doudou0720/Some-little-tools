@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创建节目单</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/bootstrap.min.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/bootstrap-icons.min.css') }}" />
+    <script src="{{ url_for('static',filename='js/bootstrap.bundle.js') }}"></script>
+    <style>
+        body {
+            padding-top: 60px;
+            background-color: #f8f9fa;
+        }
+        .create-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .song-card {
+            transition: transform 0.2s;
+            margin-bottom: 20px;
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            height: 100%;
+        }
+        .song-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        }
+        .song-img {
+            height: 150px;
+            object-fit: cover;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+        .card-title {
+            font-size: 1rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .card-text {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-bottom: 0.25rem;
+        }
+        .playlist-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .playlist-item {
+            background: #e9ecef;
+            border-radius: 5px;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        .playlist-item .item-number {
+            font-weight: bold;
+            margin-right: 10px;
+            min-width: 25px;
+        }
+        .playlist-item .song-name {
+            flex-grow: 1;
+        }
+        .playlist-item .remove-btn {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+        }
+        .empty-playlist {
+            text-align: center;
+            padding: 30px;
+            color: #6c757d;
+        }
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar fixed-top bg-primary navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Smart KTV</a>
+        </div>
+    </nav>
+
+    <div class="container create-container">
+        <div class="section-header">
+            <h2>
+                <i class="bi bi-plus-circle"></i> 创建节目单
+            </h2>
+            <p class="text-muted">从歌曲列表中选择歌曲添加到节目单</p>
+        </div>
+
+        <div class="row">
+            <!-- 歌曲列表 -->
+            <div class="col-md-8">
+                <div class="playlist-section">
+                    <h4 class="mb-4">
+                        <i class="bi bi-music-note-list"></i> 歌曲列表
+                    </h4>
+                    {% if songs %}
+                    <div class="row">
+                        {% for song in songs %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card song-card">
+                                <img src="{{ url_for('static', filename='images/' + song.Img) }}" 
+                                     class="card-img-top song-img" 
+                                     alt="{{ song.Song }}">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ song.Song }}</h5>
+                                    <p class="card-text">
+                                        <i class="bi bi-person"></i> {{ song.Artist }}
+                                    </p>
+                                    <p class="card-text">
+                                        <i class="bi bi-disc"></i> {{ song.Disc }}
+                                    </p>
+                                    <button class="btn btn-primary add-to-playlist-btn w-100" 
+                                            data-uuid="{{ song.UUID }}"
+                                            data-name="{{ song.Song }}"
+                                            data-artist="{{ song.Artist }}"
+                                            data-img="{{ song.Img }}">
+                                        <i class="bi bi-plus-circle"></i> 添加到节目单
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info text-center" role="alert">
+                        <i class="bi bi-info-circle"></i> 暂无歌曲信息
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 节目单预览 -->
+            <div class="col-md-4">
+                <div class="playlist-section">
+                    <h4 class="mb-4">
+                        <i class="bi bi-list-ul"></i> 节目单预览
+                    </h4>
+                    <div id="playlist-preview">
+                        {% if playlist and playlist|length > 0 %}
+                            {% for song in playlist %}
+                            <div class="playlist-item" data-uuid="{{ song.uuid }}">
+                                <div class="item-number">{{ loop.index }}.</div>
+                                <div class="song-name">{{ song.name }}</div>
+                                <button class="remove-btn" data-uuid="{{ song.uuid }}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-playlist" id="empty-playlist-message">
+                                <i class="bi bi-music-note-list"></i>
+                                <p>节目单为空</p>
+                                <p class="text-muted">请从左侧选择歌曲添加</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button id="clear-playlist-btn" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> 清空
+                        </button>
+                        <button id="save-playlist-btn" class="btn btn-success" {% if not playlist or playlist|length == 0 %}disabled{% endif %}>
+                            <i class="bi bi-save"></i> 保存节目单
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static',filename='js/jquery-3.6.1.js') }}"></script>
+    <script>
+        $(document).ready(function() {
+            // 当前节目单列表
+            let currentPlaylist = [];
+            
+            // 初始化节目单
+            {% if playlist %}
+                {% for song in playlist %}
+                    currentPlaylist.push({
+                        uuid: "{{ song.uuid }}",
+                        name: "{{ song.name }}",
+                        artist: "{{ song.artist }}",
+                        img: "{{ song.img }}"
+                    });
+                {% endfor %}
+            {% endif %}
+            
+            // 添加到节目单
+            $('.add-to-playlist-btn').on('click', function() {
+                const songUuid = $(this).data('uuid');
+                const songName = $(this).data('name');
+                const songArtist = $(this).data('artist');
+                const songImg = $(this).data('img');
+                
+                // 检查歌曲是否已在节目单中
+                const exists = currentPlaylist.some(song => song.uuid === songUuid);
+                if (exists) {
+                    alert('歌曲已存在于节目单中');
+                    return;
+                }
+                
+                // 添加到节目单
+                currentPlaylist.push({
+                    uuid: songUuid,
+                    name: songName,
+                    artist: songArtist,
+                    img: songImg
+                });
+                
+                // 更新节目单预览
+                updatePlaylistPreview();
+                
+                // 显示成功反馈
+                const originalText = $(this).html();
+                $(this).html('<i class="bi bi-check-circle"></i> 已添加');
+                $(this).removeClass('btn-primary').addClass('btn-success');
+                
+                // 2秒后恢复原状
+                setTimeout(() => {
+                    $(this).html(originalText);
+                    $(this).removeClass('btn-success').addClass('btn-primary');
+                }, 2000);
+            });
+            
+            // 从节目单移除
+            $(document).on('click', '.remove-btn', function() {
+                const songUuid = $(this).data('uuid');
+                currentPlaylist = currentPlaylist.filter(song => song.uuid !== songUuid);
+                updatePlaylistPreview();
+            });
+            
+            // 清空节目单
+            $('#clear-playlist-btn').on('click', function() {
+                if (confirm('确定要清空节目单吗？')) {
+                    currentPlaylist = [];
+                    updatePlaylistPreview();
+                }
+            });
+            
+            // 保存节目单
+            $('#save-playlist-btn').on('click', function() {
+                // 发送到后端保存
+                fetch('/api/playlist/main', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        songs: currentPlaylist.map(song => song.uuid)
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('节目单保存成功');
+                        // 跳转到节目单页面
+                        window.location.href = '/playlist';
+                    } else {
+                        alert('保存失败: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('保存节目单时发生错误');
+                });
+            });
+            
+            // 更新节目单预览
+            function updatePlaylistPreview() {
+                const playlistPreview = $('#playlist-preview');
+                
+                if (currentPlaylist.length === 0) {
+                    playlistPreview.html(`
+                        <div class="empty-playlist" id="empty-playlist-message">
+                            <i class="bi bi-music-note-list"></i>
+                            <p>节目单为空</p>
+                            <p class="text-muted">请从左侧选择歌曲添加</p>
+                        </div>
+                    `);
+                    $('#save-playlist-btn').prop('disabled', true);
+                    return;
+                }
+                
+                // 移除空列表消息
+                $('#empty-playlist-message').remove();
+                
+                // 构建节目单HTML
+                let html = '';
+                currentPlaylist.forEach((song, index) => {
+                    html += `
+                    <div class="playlist-item" data-uuid="${song.uuid}">
+                        <div class="item-number">${index + 1}.</div>
+                        <div class="song-name">${song.name}</div>
+                        <button class="remove-btn" data-uuid="${song.uuid}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                    `;
+                });
+                
+                playlistPreview.html(html);
+                $('#save-playlist-btn').prop('disabled', false);
+            }
+        });
+    </script>
+</body>
+</html>

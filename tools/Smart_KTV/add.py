@@ -36,7 +36,7 @@ elif rep == "2":
     while True:
         if input("Input Anything To Break.") != "":
             break
-        UUID = uuid.uuid4()
+        UUID = str(uuid.uuid4())
         rep = input("Input Music163 ID To Fast Generate")
         if rep != "":
             try:
@@ -70,3 +70,18 @@ elif rep == "2":
                 with open("../static/audios/"+UUID+".lrc","w",encoding="utf-8") as f:
                     f.write("[00:00.000] 无歌词")
         
+        # 检查data.csv是否存在，如果不存在则创建并添加标题行
+        try:
+            with open("data.csv", "r") as f:
+                pass
+        except FileNotFoundError:
+            with open("data.csv", "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(["UUID", "Song", "Vol", "Ins", "Lrc", "Artist", "Disc", "Img"])
+        
+        # 将歌曲信息添加到data.csv
+        with open("data.csv", "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow([UUID, Name, "t1.mp3", "t2.mp3", "t1.lrc", singer, Disc, "t1.jpg"])
+else:
+    print("Invalid input")

@@ -1,3 +1,3 @@
-Song,Vol,Ins,Lrc,Artist,Disc,Img
-爱情转移,t1.mp3,t2.mp3,t1.lrc,xxx,xxxx,t1.jpg
-不眠之夜,test2.wav,test1.wav,test.lrc,HOYO-MIX,xxxx,test.jpg
+UUID,Song,Vol,Ins,Lrc,Artist,Disc,Img
+ddbcff64-a4bb-4e79-8e78-7e5012d65544,爱情转移,t1.mp3,t2.mp3,t1.lrc,xxx,xxxx,t1.jpg
+87713447-cfa6-41b5-bc41-dd35dee42f54,不眠之夜,test2.wav,test1.wav,test.lrc,HOYO-MIX,xxxx,test.jpg

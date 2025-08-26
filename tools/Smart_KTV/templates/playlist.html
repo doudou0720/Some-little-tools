@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>节目单</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/bootstrap.min.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/bootstrap-icons.min.css') }}" />
+    <script src="{{ url_for('static',filename='js/bootstrap.bundle.js') }}"></script>
+    <style>
+        body {
+            padding-top: 60px;
+            background-color: #f8f9fa;
+        }
+        .playlist-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .playlist-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .playlist-item {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+        .playlist-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .item-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #007bff;
+            margin-right: 15px;
+            min-width: 40px;
+            text-align: center;
+        }
+        .song-info {
+            flex-grow: 1;
+        }
+        .song-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .song-artist {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        .song-img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 5px;
+            margin-right: 15px;
+        }
+        .playlist-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        .control-btn {
+            font-size: 1.2rem;
+            padding: 10px 20px;
+        }
+        .empty-playlist {
+            text-align: center;
+            padding: 50px 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .empty-playlist i {
+            font-size: 3rem;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar fixed-top bg-primary navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Smart KTV</a>
+        </div>
+    </nav>
+
+    <div class="container playlist-container">
+        <div class="playlist-header">
+            <h2>
+                <i class="bi bi-list-ul"></i> 节目单
+            </h2>
+            <p class="text-muted">以下是您的节目单列表</p>
+        </div>
+
+        {% if playlist and playlist|length > 0 %}
+            {% for song in playlist %}
+            <div class="playlist-item">
+                <div class="item-number">{{ loop.index }}</div>
+                <img src="{{ url_for('static', filename='images/' + song.img) }}" 
+                     class="song-img" 
+                     alt="{{ song.name }}">
+                <div class="song-info">
+                    <div class="song-title">{{ song.name }}</div>
+                    <div class="song-artist">
+                        <i class="bi bi-person"></i> {{ song.artist or '未知艺术家' }}
+                    </div>
+                </div>
+                <div>
+                    <button class="btn btn-primary play-btn" data-uuid="{{ song.uuid }}">
+                        <i class="bi bi-play-fill"></i> 播放
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="playlist-controls">
+                <a href="{{ url_for('create_playlist') }}" class="btn btn-secondary control-btn">
+                    <i class="bi bi-plus-circle"></i> 管理节目单
+                </a>
+                <button id="play-all-btn" class="btn btn-success control-btn">
+                    <i class="bi bi-play-fill"></i> 顺序播放全部
+                </button>
+            </div>
+        {% else %}
+            <div class="empty-playlist">
+                <div>
+                    <i class="bi bi-music-note-list"></i>
+                </div>
+                <h4>节目单为空</h4>
+                <p class="text-muted">您还没有添加任何歌曲到节目单中</p>
+                <a href="{{ url_for('create_playlist') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> 创建节目单
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <script src="{{ url_for('static',filename='js/jquery-3.6.1.js') }}"></script>
+    <script>
+        $(document).ready(function() {
+            // 播放单个歌曲
+            $('.play-btn').on('click', function() {
+                const songUuid = $(this).data('uuid');
+                // 重定向到播放页面，传递歌曲UUID
+                window.location.href = `/play?uuid=${songUuid}`;
+            });
+            
+            // 播放全部歌曲
+            $('#play-all-btn').on('click', function() {
+                // 获取第一个歌曲的UUID并播放
+                const firstSongUuid = $('.play-btn').first().data('uuid');
+                if (firstSongUuid) {
+                    window.location.href = `/play?uuid=${firstSongUuid}`;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

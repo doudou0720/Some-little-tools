@@ -42,6 +42,11 @@
         .play-btn {
             width: 100%;
         }
+        /* 播放列表按钮样式 */
+        .playlist-btn {
+            width: 100%;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -72,10 +77,15 @@
                         <p class="card-text">
                             <i class="bi bi-disc"></i> {{ song.Disc }}
                         </p>
-                        <a href="{{ url_for('play') }}?name={{ song.Song }}" 
+                        <a href="{{ url_for('play') }}?uuid={{ song.UUID }}" 
                            class="btn btn-primary play-btn">
                             <i class="bi bi-play-circle"></i> 播放歌曲
                         </a>
+                        <button class="btn btn-outline-secondary playlist-btn" 
+                                data-uuid="{{ song.UUID }}" 
+                                data-name="{{ song.Song }}">
+                            <i class="bi bi-plus-circle"></i> 添加到播放列表
+                        </button>
                     </div>
                 </div>
             </div>
@@ -86,6 +96,7 @@
             <i class="bi bi-info-circle"></i> 暂无歌曲信息
         </div>
         {% endif %}
+        
     </div>
 
     <script src="{{ url_for('static',filename='js/jquery-3.6.1.js') }}"></script>
@@ -97,6 +108,118 @@
             }).on('mouseleave', function() {
                 $(this).find('.card-title').removeClass('text-primary');
             });
+            
+            // 添加到播放列表按钮事件
+            $('.playlist-btn').on('click', function() {
+                const songUuid = $(this).data('uuid');
+                const songName = $(this).data('name');
+                
+                // 创建临时session_id用于演示（实际应用中应该使用真实session）
+                const sessionId = 'demo-session-' + Date.now();
+                
+                // 发送请求添加到播放列表
+                fetch('/api/playlist', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        song_uuid: songUuid
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // 显示成功消息
+                        const originalText = $(this).html();
+                        $(this).html('<i class="bi bi-check-circle"></i> 已添加');
+                        $(this).removeClass('btn-outline-secondary').addClass('btn-success');
+                        
+                        // 3秒后恢复原状
+                        setTimeout(() => {
+                            $(this).html(originalText);
+                            $(this).removeClass('btn-success').addClass('btn-outline-secondary');
+                        }, 3000);
+                        
+                        // 重新加载历史记录
+                        loadPlaylistsHistory();
+                    } else {
+                        alert('添加到播放列表失败: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('添加到播放列表时发生错误');
+                });
+            });
+            
+            // 加载播放列表历史记录
+            function loadPlaylistsHistory() {
+                fetch('/api/playlists/history')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        displayPlaylistsHistory(data.history);
+                    } else {
+                        $('#playlists-history').html('<div class="alert alert-warning">加载播放列表历史失败</div>');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    $('#playlists-history').html('<div class="alert alert-danger">加载播放列表历史时发生错误</div>');
+                });
+            }
+            
+            // 显示播放列表历史记录
+            function displayPlaylistsHistory(history) {
+                const container = $('#playlists-history');
+                
+                if (history.length === 0) {
+                    container.html('<div class="alert alert-info text-center">暂无播放列表历史记录</div>');
+                    return;
+                }
+                
+                let html = '';
+                history.forEach((playlist, index) => {
+                    // 格式化时间戳
+                    const updatedAt = new Date(playlist.updated_at * 1000);
+                    const timeString = updatedAt.toLocaleString('zh-CN');
+                    
+                    html += `
+                    <div class="history-item">
+                        <div class="history-header">
+                            <h5>播放列表 #${index + 1}</h5>
+                            <div>
+                                <span class="badge bg-secondary me-2">${playlist.song_count} 首歌曲</span>
+                                <span class="timestamp">${timeString}</span>
+                            </div>
+                        </div>
+                        <div class="history-songs">
+                    `;
+                    
+                    playlist.songs.forEach(song => {
+                        html += `
+                        <div class="history-song">
+                            <img src="${'/static/images/' + song.img}" 
+                                 class="history-song-img" 
+                                 alt="${song.name}">
+                            <span>${song.name}</span>
+                        </div>
+                        `;
+                    });
+                    
+                    html += `
+                        </div>
+                    </div>
+                    `;
+                });
+                
+                container.html(html);
+            }
+            
+            // 初始加载播放列表历史记录
+            loadPlaylistsHistory();
         });
     </script>
 </body>

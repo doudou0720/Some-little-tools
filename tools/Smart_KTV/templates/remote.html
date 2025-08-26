@@ -74,6 +74,38 @@
             padding: 10px;
             margin: 10px 0;
         }
+        /* 播放列表样式 */
+        .playlist-container {
+            background-color: #444;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .playlist-item {
+            background-color: #555;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .playlist-item .song-info {
+            flex-grow: 1;
+        }
+        .playlist-item .song-title {
+            font-weight: bold;
+        }
+        .playlist-item .song-artist {
+            font-size: 0.8em;
+            color: #ccc;
+        }
+        .playlist-item .remove-btn {
+            background: none;
+            border: none;
+            color: #ff6b6b;
+            font-size: 1.2em;
+        }
     </style>
 </head>
 <body>
@@ -155,6 +187,19 @@
                 <button id="calibrate-btn" class="btn btn-warning w-100">手动校准</button>
             </div>
         </div>
+        
+        <!-- 添加播放列表 -->
+        <div class="playlist-container">
+            <h4 class="mb-3">
+                <i class="bi bi-list-ul"></i> 播放列表
+                <button id="clear-playlist-btn" class="btn btn-sm btn-danger float-end">清空</button>
+            </h4>
+            <div id="playlist-items">
+                <div class="text-center py-3 text-muted" id="playlist-empty-message">
+                    播放列表为空
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="{{ url_for('static',filename='js/jquery-3.6.1.js') }}"></script>
@@ -187,6 +232,147 @@
             return urlParams.get('session_id');
         }
         
+        // 添加到播放列表
+        function addToPlaylist(songUuid) {
+            if (!sessionId || !songUuid) return;
+            
+            fetch('/api/playlist', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    song_uuid: songUuid
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    loadPlaylist(); // 重新加载播放列表
+                } else {
+                    console.error('添加到播放列表失败:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('添加到播放列表出错:', error);
+            });
+        }
+        
+        // 从播放列表移除
+        function removeFromPlaylist(songUuid) {
+            if (!sessionId || !songUuid) return;
+            
+            fetch(`/api/playlist/${sessionId}/${songUuid}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    loadPlaylist(); // 重新加载播放列表
+                } else {
+                    console.error('从播放列表移除失败:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('从播放列表移除出错:', error);
+            });
+        }
+        
+        // 清空播放列表
+        function clearPlaylist() {
+            if (!sessionId) return;
+            
+            fetch(`/api/playlist/${sessionId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    loadPlaylist(); // 重新加载播放列表
+                } else {
+                    console.error('清空播放列表失败:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('清空播放列表出错:', error);
+            });
+        }
+        
+        // 加载播放列表
+        function loadPlaylist() {
+            if (!sessionId) return;
+            
+            fetch(`/api/playlist/${sessionId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    displayPlaylist(data.songs);
+                } else {
+                    console.error('加载播放列表失败:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('加载播放列表出错:', error);
+            });
+        }
+        
+        // 显示播放列表
+        function displayPlaylist(songs) {
+            const playlistContainer = document.getElementById('playlist-items');
+            const emptyMessage = document.getElementById('playlist-empty-message');
+            
+            // 清空现有内容
+            playlistContainer.innerHTML = '';
+            
+            if (songs.length === 0) {
+                // 显示空列表消息
+                playlistContainer.appendChild(emptyMessage);
+                emptyMessage.style.display = 'block';
+                return;
+            }
+            
+            // 隐藏空列表消息
+            emptyMessage.style.display = 'none';
+            
+            // 添加歌曲到播放列表
+            songs.forEach((song, index) => {
+                const playlistItem = document.createElement('div');
+                playlistItem.className = 'playlist-item';
+                playlistItem.innerHTML = `
+                    <div class="song-info">
+                        <div class="song-title">${song.name}</div>
+                        <div class="song-artist">${song.artist || '-'}</div>
+                    </div>
+                    <div>
+                        <button class="play-btn btn btn-sm btn-primary me-2" data-uuid="${song.uuid}">
+                            <i class="bi bi-play-fill"></i>
+                        </button>
+                        <button class="remove-btn" data-uuid="${song.uuid}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                `;
+                playlistContainer.appendChild(playlistItem);
+            });
+            
+            // 绑定播放按钮事件
+            document.querySelectorAll('.play-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const songUuid = this.getAttribute('data-uuid');
+                    sendCommand('change_song_by_uuid', {song_uuid: songUuid});
+                });
+            });
+            
+            // 绑定移除按钮事件
+            document.querySelectorAll('.remove-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const songUuid = this.getAttribute('data-uuid');
+                    removeFromPlaylist(songUuid);
+                });
+            });
+        }
+        
         function connectWebSocket() {
             try {
                 sessionId = getSessionIdFromUrl();
@@ -213,6 +399,8 @@
                     startHeartbeat();
                     // 加载歌曲列表
                     loadSongList();
+                    // 加载播放列表
+                    loadPlaylist();
                 };
                 
                 ws.onmessage = function(event) {
@@ -351,11 +539,18 @@
                     syncStatus = data.status;
                     break;
                 case 'song_changed':
+                    // 重置歌曲相关信息
                     document.getElementById('song-title').textContent = data.song_name;
                     document.getElementById('artist').textContent = data.artist || '-';
                     currentSong.title = data.song_name;
                     currentSong.artist = data.artist || '-';
-                    // 歌曲切换后需要更新时长信息
+                    
+                    // 重置进度条和时间显示
+                    document.getElementById('progress-bar').style.width = '0%';
+                    document.getElementById('progress-slider').value = 0;
+                    document.getElementById('current-time').textContent = '00:00';
+                    
+                    // 更新歌曲时长信息
                     if (data.duration) {
                         currentSong.duration = data.duration;
                         document.getElementById('duration').textContent = formatTime(data.duration);
@@ -504,6 +699,13 @@
                 sendCommand('calibrate_audio');
             });
             
+            // 清空播放列表按钮
+            document.getElementById('clear-playlist-btn').addEventListener('click', function() {
+                if (confirm('确定要清空播放列表吗？')) {
+                    clearPlaylist();
+                }
+            });
+            
             // 音量滑块
             document.getElementById('volume-slider').addEventListener('input', function(e) {
                 const volume = parseInt(e.target.value) / 100;
@@ -550,6 +752,12 @@
                     sendCommand('change_song', {song_name: songName});
                     // 清空选择器的值，避免重复选择同一首歌
                     e.target.value = '';
+                    
+                    // 重置进度和状态
+                    document.getElementById('progress-bar').style.width = '0%';
+                    document.getElementById('progress-slider').value = 0;
+                    document.getElementById('current-time').textContent = '00:00';
+                    document.getElementById('duration').textContent = '00:00';
                 }
             });
             
