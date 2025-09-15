@@ -1,0 +1,8 @@
+{
+    "name": "example_extension",
+    "version": "1.0.0",
+    "author": "ClassisTime Developer",
+    "description": "An example extension for ClassisTime",
+    "entry_point": "main.py",
+    "dependencies": []
+}
